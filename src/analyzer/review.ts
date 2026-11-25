@@ -1,15 +1,15 @@
 import { execFile } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
-import { STATE_DIR } from '../config.ts';
+import { ANALYZER_REVIEW_DIR } from '../config.ts';
 import type { Report } from './types.ts';
 
 // "Ask Claude to review": sends the report's findings plus short excerpts of the flagged files to `claude -p`.
 
 /** Where the review runs. Its sessions are not your work, so the Sessions board skips them. */
-export const REVIEW_DIR = path.join(STATE_DIR, 'analyzer-review');
+export const REVIEW_DIR = ANALYZER_REVIEW_DIR;
 
-export const isReviewCwd = (cwd: string) => cwd === REVIEW_DIR || cwd.endsWith(path.sep + 'analyzer-review');
+export const isReviewCwd = (cwd: string) => cwd === REVIEW_DIR || cwd.startsWith(REVIEW_DIR + path.sep);
 
 /** Runs one review and returns Claude's advice. Injected into the routes so tests never call the real CLI. */
 export type ReviewRunner = (input: { prompt: string; cwd: string }) => Promise<string>;

@@ -1,4 +1,4 @@
-import type { Report } from "@server/analyzer/types.ts";
+import type { Report, Window } from "@server/analyzer/types.ts";
 import { Loader2, Play } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -6,6 +6,7 @@ import { Button, Card, CardContent } from "@/components/ui";
 import { api } from "@/lib/api";
 import { CategoryCards, ScoreHeader } from "@/pages/analyzer/Scores";
 import { Findings } from "@/pages/analyzer/Findings";
+import { UsageBreakdown, WindowToggle } from "@/pages/analyzer/Usage";
 import { ReviewButton, ReviewPanel } from "@/pages/analyzer/Review";
 
 export function Analyzer() {
@@ -20,10 +21,10 @@ export function Analyzer() {
     });
   }, []);
 
-  const run = async () => {
+  const run = async (window?: Window) => {
     setRunning(true);
     try {
-      setReport(await api.runAnalyzer(report?.window));
+      setReport(await api.runAnalyzer(window ?? report?.window));
       setReviewError(undefined);
     } catch (err) {
       toast.error(`Analysis failed: ${(err as Error).message}`);
@@ -33,7 +34,7 @@ export function Analyzer() {
   };
 
   const runButton = (
-    <Button onClick={run} disabled={running}>
+    <Button onClick={() => run()} disabled={running}>
       {running ? <Loader2 className="animate-spin" /> : <Play />} Run
     </Button>
   );
@@ -57,6 +58,7 @@ export function Analyzer() {
         report={report}
         actions={
           <>
+            <WindowToggle window={report.window} disabled={running} onChange={run} />
             <ReviewButton onReport={setReport} onError={setReviewError} />
             {runButton}
           </>
@@ -64,6 +66,7 @@ export function Analyzer() {
       />
       <ReviewPanel report={report} error={reviewError} />
       <CategoryCards report={report} />
+      <UsageBreakdown report={report} />
       <Findings findings={report.findings} />
     </div>
   );
