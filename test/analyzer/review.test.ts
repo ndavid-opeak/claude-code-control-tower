@@ -24,6 +24,7 @@ const report: Report = {
     { id: 'context/big:1', category: 'context', severity: 'medium', points: 8, title: 'Big memory file', detail: 'too long', file: flagged, line: 20, fix: 'trim it' },
     { id: 'usage/x:1', category: 'usage', severity: 'low', points: 3, title: 'No file', detail: 'd', fix: 'f' },
   ],
+  usage: { window: 30, totalTokens: 0, cacheShare: null, byProject: [], byModel: [], bySession: [] },
 };
 
 const calls: { prompt: string; cwd: string }[] = [];
