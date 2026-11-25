@@ -1,8 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { ANALYZER_REVIEW_DIR } from '../../../config.ts';
 import { familyOf } from '../../../sessions/collect/usage.ts';
 import { listProjects } from '../../projects.ts';
+import { isReviewCwd } from '../../review.ts';
 import type { UsageBreakdown } from '../../types.ts';
 import type { RuleContext } from '../types.ts';
 
@@ -44,10 +44,6 @@ export function scanUsage(ctx: RuleContext): UsageScan {
   return scan;
 }
 
-function inReviewDir(dir: string): boolean {
-  return dir === ANALYZER_REVIEW_DIR || dir.startsWith(ANALYZER_REVIEW_DIR + path.sep);
-}
-
 function readUsage(ctx: RuleContext): UsageScan {
   const since = ctx.now - ctx.window * DAY;
   const sessions: SessionUsage[] = [];
@@ -59,7 +55,7 @@ function readUsage(ctx: RuleContext): UsageScan {
   let inputSide = 0;
 
   for (const project of listProjects(ctx.claudeHome)) {
-    if (inReviewDir(project.path)) continue;
+    if (isReviewCwd(project.path)) continue;
     let names: string[] = [];
     try {
       names = fs.readdirSync(project.transcriptsDir);
