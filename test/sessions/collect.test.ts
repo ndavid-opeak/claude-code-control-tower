@@ -8,7 +8,7 @@ import { readSubagents } from '../../src/sessions/collect/subagents.ts';
 import { tokensUsed } from '../../src/sessions/collect/tokens.ts';
 import { slugFor, summarizeTail } from '../../src/sessions/collect/transcript.ts';
 import { LiveUsage, parsePlanUsage, parseRateLimitEvent, TranscriptScanner } from '../../src/sessions/collect/usage.ts';
-import { appLink, breakdown, buildHistory, compactPoint, contextLimitFor, deriveMainState, pickUsage } from '../../src/sessions/state.ts';
+import { appLink, breakdown, buildHistory, compactPoint, contextLimitFor, deriveMainState, pathsFor, pickUsage } from '../../src/sessions/state.ts';
 
 let tmp: string;
 beforeEach(() => {
@@ -383,5 +383,17 @@ describe('session history and pull requests', () => {
     });
     expect(h[0].prs.map((p) => p.number)).toEqual([4, 7]);
     expect(scanner.prsOf('live')).toEqual([]);
+  });
+});
+
+describe('pathsFor', () => {
+  const desktop = (platform: NodeJS.Platform, env: NodeJS.ProcessEnv = {}) => pathsFor('/h', platform, env).desktopSessions;
+
+  it('finds the Claude desktop app folder on each OS', () => {
+    expect(desktop('darwin')).toBe(path.join('/h', 'Library', 'Application Support', 'Claude', 'claude-code-sessions'));
+    expect(desktop('win32', { APPDATA: 'C:\\Users\\me\\AppData\\Roaming' })).toBe(path.join('C:\\Users\\me\\AppData\\Roaming', 'Claude', 'claude-code-sessions'));
+    expect(desktop('win32')).toBe(path.join('/h', 'AppData', 'Roaming', 'Claude', 'claude-code-sessions'));
+    expect(desktop('linux', { XDG_CONFIG_HOME: '/x' })).toBe(path.join('/x', 'Claude', 'claude-code-sessions'));
+    expect(desktop('linux')).toBe(path.join('/h', '.config', 'Claude', 'claude-code-sessions'));
   });
 });

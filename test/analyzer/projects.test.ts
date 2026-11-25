@@ -56,7 +56,8 @@ describe('instructionChain', () => {
     write(path.join(proj, 'CLAUDE.local.md'), 'local');
 
     const chain = instructionChain(home, proj);
-    expect(chain.map((f) => [path.relative(tmp, f.file), f.importedBy && path.relative(tmp, f.importedBy)])).toEqual([
+    const rel = (f: string) => path.relative(tmp, f).split(path.sep).join('/');
+    expect(chain.map((f) => [rel(f.file), f.importedBy && rel(f.importedBy)])).toEqual([
       ['.claude/CLAUDE.md', undefined],
       ['ws/CLAUDE.md', undefined],
       ['ws/AGENTS.md', 'ws/CLAUDE.md'],

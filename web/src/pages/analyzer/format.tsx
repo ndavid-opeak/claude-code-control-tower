@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 export const shortPath = (p: string) => p.replace(/^\/(?:Users|home)\/[^/]+(?=\/|$)/, "~");
 
 /** The last folder of a path, for tight table cells (the full path goes in a tooltip). */
-export const baseName = (p: string) => p.split("/").filter(Boolean).pop() ?? p;
+export const baseName = (p: string) => p.split(/[\\/]/).filter(Boolean).pop() ?? p;
 
 /** A finding title for a one-line row: plugin ids lose their marketplace, and the first letter is capitalized. */
 export const shortTitle = (t: string) => {

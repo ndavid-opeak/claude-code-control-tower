@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="10 4 44 54" width="104" height="128" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <title>claude-code-control-tower</title>
+  <path d="M32 12 V18" stroke="#0F1B2D" stroke-width="3"/>
+  <circle cx="32" cy="10" r="3.5" fill="#14B892"/>
+  <rect x="20" y="18" width="24" height="5" rx="2" fill="#0F1B2D"/>
+  <path d="M15 24 H49 L44 36 H20 Z" fill="#14B892"/>
+  <path d="M26 25.5 V34.5 M32 25.5 V34.5 M38 25.5 V34.5" stroke="#FFFFFF" stroke-width="2"/>
+  <path d="M27 36 H37 L39 51 H25 Z" fill="#0F1B2D"/>
+  <rect x="19" y="51" width="26" height="4" rx="2" fill="#0F1B2D"/>
+</svg>

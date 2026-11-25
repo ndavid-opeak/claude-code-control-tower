@@ -229,6 +229,8 @@ if (process.env.NODE_ENV !== "test") {
   const port = Number(process.env.PORT ?? getConfig().port);
   serve({ fetch: app.fetch, port, hostname: "127.0.0.1" }, () => {
     console.log(`claude-code-control-tower on http://127.0.0.1:${port}  (mode: ${getConfig().mode})`);
-    console.log(`Connect Claude Code with:  ANTHROPIC_BASE_URL=http://127.0.0.1:${port} claude`);
+    const url = `http://127.0.0.1:${port}`;
+    const command = process.platform === "win32" ? `$env:ANTHROPIC_BASE_URL="${url}"; claude` : `ANTHROPIC_BASE_URL=${url} claude`;
+    console.log(`Connect Claude Code with:  ${command}`);
   });
 }

@@ -23,7 +23,7 @@ function textOf(content: unknown): string {
 /** A few words saying what a tool call was about, for the collapsed step list. */
 export function describeTool(name: string, input: any): string {
   const s = (v: unknown) => (typeof v === 'string' ? v.replace(/\s+/g, ' ').trim() : '');
-  const base = (p: unknown) => s(p).split('/').filter(Boolean).at(-1) ?? '';
+  const base = (p: unknown) => s(p).split(/[\\/]/).filter(Boolean).at(-1) ?? '';
   switch (name) {
     case 'Bash':
       return s(input?.description) || s(input?.command).slice(0, 120);

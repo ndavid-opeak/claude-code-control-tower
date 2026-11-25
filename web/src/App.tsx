@@ -1,4 +1,4 @@
-import { Activity, Gauge, LayoutGrid, Route, Server, Settings as SettingsIcon, Waypoints, Workflow } from "lucide-react";
+import { Activity, Gauge, LayoutGrid, Route, Server, Settings as SettingsIcon, Workflow } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Toaster } from "sonner";
 import { DefaultPicker } from "@/components/DefaultProvider";
@@ -78,10 +78,8 @@ export function App() {
     <div className="flex min-h-screen flex-col md:flex-row">
       <aside className="z-30 flex flex-col border-b bg-card md:sticky md:top-0 md:h-screen md:w-56 md:shrink-0 md:border-r md:border-b-0">
         <div className="flex items-center gap-2 px-4 py-4 md:px-5 md:py-5">
-          <div className="grid size-7 place-items-center rounded-lg bg-primary text-primary-foreground">
-            <Waypoints className="size-4" />
-          </div>
-          <span className="font-semibold tracking-tight">claude-code-control-tower</span>
+          <img src="/favicon.svg" alt="" className="size-7 rounded-md dark:ring-1 dark:ring-white/25" />
+          <span className="font-semibold tracking-tight">Control Tower</span>
         </div>
         <nav className="flex gap-1 overflow-x-auto px-2 pb-2 md:flex-col md:px-3">
           {PAGES.map((p) => (

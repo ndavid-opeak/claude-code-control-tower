@@ -1,0 +1,20 @@
+# Template: a systemd user service that starts claude-code-control-tower at login and restarts it if it stops.
+# Fill in __NODE__ and __REPO__ (see "Start it automatically" in the README), then:
+#   systemctl --user daemon-reload && systemctl --user enable --now claude-code-control-tower
+# Remove with:
+#   systemctl --user disable --now claude-code-control-tower && rm ~/.config/systemd/user/claude-code-control-tower.service
+[Unit]
+Description=claude-code-control-tower (local router and Sessions board for Claude Code)
+
+[Service]
+ExecStart=__NODE__ __REPO__/node_modules/tsx/dist/cli.mjs src/server.ts
+WorkingDirectory=__REPO__
+# claude must be on PATH for the Sessions page's usage check
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+Restart=always
+RestartSec=10
+StandardOutput=append:%h/.claude-router/router.log
+StandardError=append:%h/.claude-router/router.log
+
+[Install]
+WantedBy=default.target
