@@ -1,6 +1,6 @@
 <div align="center">
 
-# claude-router
+# claude-code-control-tower
 
 **Mission control for Claude Code, running entirely on your Mac.**
 
@@ -12,13 +12,15 @@ See every Claude Code session at a glance, route models across Anthropic and Gem
 ![Local only](https://img.shields.io/badge/runs-127.0.0.1%20only-success.svg)
 ![No telemetry](https://img.shields.io/badge/telemetry-none-success.svg)
 
+<sub>Formerly <b>claude-router</b>. Its state folder (<code>~/.claude-router</code>) and launchd label keep the old name so existing installs keep working.</sub>
+
 [Set up](#set-up) · [Everyday use](#everyday-use) · [Security](#security) · [Contributing](CONTRIBUTING.md)
 
 </div>
 
-> **Independent project.** claude-router is a personal open-source project. It is not affiliated with, endorsed by or supported by Anthropic or Google. "Claude" and "Claude Code" are trademarks of Anthropic; "Gemini" is a trademark of Google.
+> **Independent project.** claude-code-control-tower is a personal open-source project. It is not affiliated with, endorsed by or supported by Anthropic or Google. "Claude" and "Claude Code" are trademarks of Anthropic; "Gemini" is a trademark of Google.
 
-## Why claude-router
+## Why claude-code-control-tower
 
 | | |
 |---|---|
@@ -51,8 +53,8 @@ The Sessions page works whether or not you route anything: it only reads Claude 
 ### 2. Install and build
 
 ```bash
-git clone https://github.com/ndavid-opeak/claude-router.git
-cd claude-router
+git clone https://github.com/ndavid-opeak/claude-code-control-tower.git
+cd claude-code-control-tower
 npm install
 npm run build        # builds the dashboard into dist/web; repeat after pulling changes
 ```
@@ -66,7 +68,7 @@ npm start
 The terminal prints:
 
 ```
-claude-router on http://127.0.0.1:3456  (mode: anthropic)
+claude-code-control-tower on http://127.0.0.1:3456  (mode: anthropic)
 Connect Claude Code with:  ANTHROPIC_BASE_URL=http://127.0.0.1:3456 claude
 ```
 
@@ -144,7 +146,7 @@ Check it: `curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:3456/` shou
 
 Or ask Claude Code in this folder to do it for you:
 
-> Set up claude-router to launch automatically when I log in and to restart itself if it stops or crashes, using the template in `launchd/`. Then verify it is running on port 3456.
+> Set up claude-code-control-tower to launch automatically when I log in and to restart itself if it stops or crashes, using the template in `launchd/`. Then verify it is running on port 3456.
 
 Things to know:
 
@@ -185,7 +187,7 @@ Your Anthropic login is passed through untouched for Anthropic targets and never
 | "Vertex needs a project" / no Vertex project set | Edit the provider and enter the project ID or number. |
 | A request was answered by Anthropic instead of Gemini | That's the fallback. Open the row in **Logs** to see why the Gemini attempt failed. |
 | Usage strip shows "Saved by Claude … ago" or a problem | The live check needs `claude` on the PATH of the terminal that started the router, and a subscription plan. |
-| "macOS has not allowed claude-router to control the terminal" | Allow it under System Settings > Privacy & Security > Automation (the entry is for the app that runs the router, `node`), then press the button again. |
+| "macOS has not allowed claude-code-control-tower to control the terminal" | Allow it under System Settings > Privacy & Security > Automation (the entry is for the app that runs the router, `node`), then press the button again. |
 | A session is missing from the board | Only sessions on this Mac show, not cloud sessions. A permission prompt shows as waiting only when Claude marks it in its session file. |
 
 ---
@@ -236,7 +238,7 @@ Credential files and `*.key` files are never opened. These files are Claude Code
 
 ### Security
 
-claude-router sees your prompts and holds your keys, so it keeps both on your machine:
+claude-code-control-tower sees your prompts and holds your keys, so it keeps both on your machine:
 
 - **Local only.** The server listens on `127.0.0.1`; nothing on your network can reach it.
 - **Locked to this computer.** The dashboard API rejects requests whose `Host` or `Origin` isn't loopback (blocks DNS rebinding and other websites) and requires JSON for every write.
@@ -275,4 +277,4 @@ npm run build      # dashboard into dist/web
 
 Issues and pull requests are welcome, see [CONTRIBUTING.md](CONTRIBUTING.md). Released under the [MIT License](LICENSE).
 
-claude-router is an independent project and is not affiliated with Anthropic or Google.
+claude-code-control-tower is an independent project and is not affiliated with Anthropic or Google.

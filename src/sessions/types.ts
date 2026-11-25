@@ -62,18 +62,18 @@ export interface MainAgent {
   /** Set once the context passes the warning or danger size for the session's model. */
   contextLevel?: ContextLevel;
   subagents: SubAgent[];
-  /** The newest request this session sent through claude-router, if any. */
+  /** The newest request this session sent through claude-code-control-tower, if any. */
   router?: RouterSummary;
   /** Set when you flagged this session to keep an eye on it. */
   flag?: SessionFlag;
 }
 
-/** claude-router: a session you flagged, with an optional note. */
+/** claude-code-control-tower: a session you flagged, with an optional note. */
 export interface SessionFlag {
   note?: string;
 }
 
-/** claude-router: who served a session's latest request. */
+/** claude-code-control-tower: who served a session's latest request. */
 export interface RouterSummary {
   provider: string;
   model: string;

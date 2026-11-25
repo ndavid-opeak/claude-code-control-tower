@@ -77,7 +77,7 @@ export async function execute(raw: Request, body: string, req: AnthropicRequest)
   if (!chain.length) {
     const msg = `no enabled provider in the ${familyOf(req.model)} route`;
     addLog({ ...entry, provider: "-", modelOut: "-", status: 503, ms: 0, error: msg });
-    return Response.json(anthropicError(503, `claude-router: ${msg}`), { status: 503 });
+    return Response.json(anthropicError(503, `claude-code-control-tower: ${msg}`), { status: 503 });
   }
 
   let last: Response | undefined;
@@ -157,6 +157,6 @@ export async function execute(raw: Request, body: string, req: AnthropicRequest)
 
   function finishError(t: Target, status: number, error: string) {
     finish(t, status, undefined, error);
-    return Response.json(anthropicError(status, `claude-router: ${error}`), { status });
+    return Response.json(anthropicError(status, `claude-code-control-tower: ${error}`), { status });
   }
 }

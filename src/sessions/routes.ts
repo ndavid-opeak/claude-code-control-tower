@@ -49,7 +49,7 @@ function tick(): void {
   try {
     snapshot = collectSnapshot(paths, getConfig().sessions, scanner, live, Date.now());
   } catch (e) {
-    console.error('claude-router: could not read session data:', e);
+    console.error('claude-code-control-tower: could not read session data:', e);
     return;
   }
   const router = routerSummaries();

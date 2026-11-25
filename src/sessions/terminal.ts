@@ -67,7 +67,7 @@ return ""`;
 function explain(err: unknown): Error {
   const text = String((err as { stderr?: string }).stderr || (err as Error).message || err);
   if (text.includes('-1743') || /not authori[sz]ed/i.test(text)) {
-    return new Error('macOS has not allowed claude-router to control the terminal. Allow it in System Settings > Privacy & Security > Automation, then try again.');
+    return new Error('macOS has not allowed claude-code-control-tower to control the terminal. Allow it in System Settings > Privacy & Security > Automation, then try again.');
   }
   return new Error(text.trim().split('\n')[0] || 'Could not open the terminal.');
 }

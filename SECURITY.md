@@ -1,10 +1,10 @@
 # Security
 
-claude-router sits between Claude Code and the model APIs, so it sees your prompts and handles your keys. It is built to keep both on your machine.
+claude-code-control-tower sits between Claude Code and the model APIs, so it sees your prompts and handles your keys. It is built to keep both on your machine.
 
 ## Security model
 
-| Concern | How claude-router handles it |
+| Concern | How claude-code-control-tower handles it |
 |---|---|
 | Network exposure | The server binds to `127.0.0.1` only. Nothing on your network can reach it. |
 | Other websites / DNS rebinding | The dashboard API rejects any request whose `Host` or `Origin` is not loopback, and every write must be JSON, which forces a CORS preflight. |
