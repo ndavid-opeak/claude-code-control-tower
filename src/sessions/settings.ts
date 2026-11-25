@@ -2,23 +2,13 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import type { Config, ContextAlert } from './types.ts';
+import { DEFAULT_CONTEXT_ALERTS } from './contextAlerts.ts';
+import type { Config } from './types.ts';
+
+export { DEFAULT_CONTEXT_ALERTS };
 
 /** This repo lives inside the projects folder, so its parent is the default root (as in Claude Office). */
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
-
-/**
- * Where long contexts start to hurt, in tokens, per model family. There is no official number: community
- * reports put the slip around 200k-250k tokens on 1M-window models and serious trouble near half the
- * window, and smaller models slip sooner. Adjustable in Settings.
- */
-export const DEFAULT_CONTEXT_ALERTS: Record<string, ContextAlert> = {
-  fable: { warn: 250_000, danger: 500_000 },
-  opus: { warn: 250_000, danger: 500_000 },
-  sonnet: { warn: 200_000, danger: 400_000 },
-  haiku: { warn: 120_000, danger: 250_000 },
-  other: { warn: 150_000, danger: 300_000 },
-};
 
 export function defaultSessionsConfig(): Config {
   return {

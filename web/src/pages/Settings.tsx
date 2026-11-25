@@ -1,4 +1,5 @@
 import { Check, Copy } from "lucide-react";
+import { DEFAULT_CONTEXT_ALERTS } from "@server/sessions/contextAlerts.ts";
 import { Fragment, useState } from "react";
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Field, Input, Switch } from "@/components/ui";
 import type { AppState } from "@/lib/hooks";
@@ -89,6 +90,18 @@ const FAMILIES = ["fable", "opus", "sonnet", "haiku"];
 const ALERT_FAMILIES = [...FAMILIES, "other"];
 const title = (f: string) => f[0].toUpperCase() + f.slice(1);
 
+/** A number field in thousands of tokens, with a "k" after the number so the unit is clear. */
+function KInput(props: React.ComponentProps<typeof Input>) {
+  return (
+    <div className="relative">
+      <Input type="number" min={1} {...props} className="pr-7" />
+      <span className="pointer-events-none absolute inset-y-0 right-2.5 flex items-center text-[13px] text-muted-foreground" aria-hidden>
+        k
+      </span>
+    </div>
+  );
+}
+
 /** Sessions viewer settings (from Claude Office). */
 function SessionsSettings({ app }: { app: AppState }) {
   const s = app.state!.config.sessions;
@@ -98,14 +111,23 @@ function SessionsSettings({ app }: { app: AppState }) {
   const [limits, setLimits] = useState<Record<string, string>>(
     Object.fromEntries(FAMILIES.map((f) => [f, s.contextLimits[f] ? String(s.contextLimits[f] / 1000) : ""])),
   );
+  // A field holds a size only when it differs from the default; empty shows the default as its placeholder.
+  const shown = (f: string, key: "warn" | "danger") => {
+    const v = s.contextAlerts?.[f]?.[key];
+    return v && v !== DEFAULT_CONTEXT_ALERTS[f][key] ? String(v / 1000) : "";
+  };
   const [alerts, setAlerts] = useState<Record<string, { warn: string; danger: string }>>(
-    Object.fromEntries(
-      ALERT_FAMILIES.map((f) => [f, { warn: String((s.contextAlerts?.[f]?.warn ?? 0) / 1000), danger: String((s.contextAlerts?.[f]?.danger ?? 0) / 1000) }]),
-    ),
+    Object.fromEntries(ALERT_FAMILIES.map((f) => [f, { warn: shown(f, "warn"), danger: shown(f, "danger") }])),
   );
   const save = () => {
     const contextAlerts = Object.fromEntries(
-      Object.entries(alerts).map(([f, a]) => [f, { warn: Number(a.warn) * 1000, danger: Number(a.danger) * 1000 }]),
+      Object.entries(alerts).map(([f, a]) => [
+        f,
+        {
+          warn: a.warn.trim() ? Number(a.warn) * 1000 : DEFAULT_CONTEXT_ALERTS[f].warn,
+          danger: a.danger.trim() ? Number(a.danger) * 1000 : DEFAULT_CONTEXT_ALERTS[f].danger,
+        },
+      ]),
     );
     const contextLimits = Object.fromEntries(
       Object.entries(limits)
@@ -138,19 +160,19 @@ function SessionsSettings({ app }: { app: AppState }) {
           </Field>
         </div>
         <fieldset className="grid gap-1.5">
-          <legend className="mb-1.5 text-[13px] font-medium">Context window size, in thousands of tokens</legend>
+          <legend className="mb-1.5 text-[13px] font-medium">Context window size (k = thousands of tokens)</legend>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             {FAMILIES.map((f) => (
               <label key={f} className="grid gap-1 text-xs text-muted-foreground">
                 {title(f)}
-                <Input type="number" min={1} placeholder="Auto" value={limits[f]} onChange={(e) => setLimits({ ...limits, [f]: e.target.value })} />
+                <KInput placeholder="Auto" aria-label={`${title(f)} context window size, in thousands of tokens`} value={limits[f]} onChange={(e) => setLimits({ ...limits, [f]: e.target.value })} />
               </label>
             ))}
           </div>
           <span className="text-xs text-muted-foreground">Claude does not record the size. Auto uses 1M for current models and 200k for older ones.</span>
         </fieldset>
         <fieldset className="grid gap-1.5">
-          <legend className="mb-1.5 text-[13px] font-medium">Context alerts, in thousands of tokens</legend>
+          <legend className="mb-1.5 text-[13px] font-medium">Context alerts (k = thousands of tokens)</legend>
           <div className="grid grid-cols-[5rem_1fr_1fr] items-center gap-x-2 gap-y-1.5 text-xs text-muted-foreground sm:max-w-md">
             <span />
             <span>Warning (!)</span>
@@ -158,17 +180,15 @@ function SessionsSettings({ app }: { app: AppState }) {
             {ALERT_FAMILIES.map((f) => (
               <Fragment key={f}>
                 <span>{title(f)}</span>
-                <Input
-                  type="number"
-                  min={1}
-                  aria-label={`${title(f)} warning size`}
+                <KInput
+                  aria-label={`${title(f)} warning size, in thousands of tokens`}
+                  placeholder={String(DEFAULT_CONTEXT_ALERTS[f].warn / 1000)}
                   value={alerts[f].warn}
                   onChange={(e) => setAlerts({ ...alerts, [f]: { ...alerts[f], warn: e.target.value } })}
                 />
-                <Input
-                  type="number"
-                  min={1}
-                  aria-label={`${title(f)} danger size`}
+                <KInput
+                  aria-label={`${title(f)} danger size, in thousands of tokens`}
+                  placeholder={String(DEFAULT_CONTEXT_ALERTS[f].danger / 1000)}
                   value={alerts[f].danger}
                   onChange={(e) => setAlerts({ ...alerts, [f]: { ...alerts[f], danger: e.target.value } })}
                 />
@@ -176,8 +196,8 @@ function SessionsSettings({ app }: { app: AppState }) {
             ))}
           </div>
           <span className="text-xs text-muted-foreground">
-            A session gets a ! past the warning size and a stop sign past the danger size. There is no official limit; reports put the slip around 200k-250k
-            tokens on 1M models, and smaller models slip sooner.
+            A session gets a ! past the warning size and a stop sign past the danger size. Leave a field empty to use the default shown in it. There is
+            no official limit; reports put the slip around 200k-250k tokens on 1M models, and smaller models slip sooner.
           </span>
         </fieldset>
         <Button className="justify-self-start" onClick={save}>
