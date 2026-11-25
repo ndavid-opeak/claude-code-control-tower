@@ -275,7 +275,7 @@ function SubagentTokens({ subs, own }: { subs: SubAgent[]; own?: number }) {
   );
 }
 
-/** This session's requests through claude-router. */
+/** This session's requests through claude-code-control-tower. */
 function RouterTab({ sessionId }: { sessionId: string }) {
   const logs = useLogs(true, 3000, sessionId);
   return (

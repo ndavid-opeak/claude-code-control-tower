@@ -166,7 +166,7 @@ export function Rich({ text }: { text: string }) {
   return <>{parts}</>;
 }
 
-/** Which provider served the session's latest request through claude-router. */
+/** Which provider served the session's latest request through claude-code-control-tower. */
 export function RouterBadge({ router }: { router?: RouterSummary }) {
   if (!router) return null;
   const failed = router.status >= 400;

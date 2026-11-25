@@ -67,7 +67,7 @@ export function App() {
   }, [openId, dismissFlagEvent]);
   const waiting = sessions.filter((s) => s.agent.state === "waiting").length;
   useEffect(() => {
-    document.title = waiting ? `(${waiting}) claude-router` : "claude-router";
+    document.title = waiting ? `(${waiting}) claude-code-control-tower` : "claude-code-control-tower";
   }, [waiting]);
 
   const current = PAGES.find((p) => p.id === page)!;
@@ -81,7 +81,7 @@ export function App() {
           <div className="grid size-7 place-items-center rounded-lg bg-primary text-primary-foreground">
             <Waypoints className="size-4" />
           </div>
-          <span className="font-semibold tracking-tight">claude-router</span>
+          <span className="font-semibold tracking-tight">claude-code-control-tower</span>
         </div>
         <nav className="flex gap-1 overflow-x-auto px-2 pb-2 md:flex-col md:px-3">
           {PAGES.map((p) => (

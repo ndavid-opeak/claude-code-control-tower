@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for your interest in claude-router. Issues and pull requests are welcome.
+Thanks for your interest in claude-code-control-tower. Issues and pull requests are welcome.
 
 ## Before you start
 
