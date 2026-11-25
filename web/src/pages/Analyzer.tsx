@@ -7,10 +7,12 @@ import { api } from "@/lib/api";
 import { CategoryCards, ScoreHeader } from "@/pages/analyzer/Scores";
 import { Findings } from "@/pages/analyzer/Findings";
 import { UsageBreakdown, WindowToggle } from "@/pages/analyzer/Usage";
+import { ReviewButton, ReviewPanel } from "@/pages/analyzer/Review";
 
 export function Analyzer() {
   const [report, setReport] = useState<Report | null | undefined>(undefined);
   const [running, setRunning] = useState(false);
+  const [reviewError, setReviewError] = useState<string>();
 
   useEffect(() => {
     api.analyzerReport().then(setReport, (err) => {
@@ -23,6 +25,7 @@ export function Analyzer() {
     setRunning(true);
     try {
       setReport(await api.runAnalyzer(window ?? report?.window));
+      setReviewError(undefined);
     } catch (err) {
       toast.error(`Analysis failed: ${(err as Error).message}`);
     } finally {
@@ -56,10 +59,12 @@ export function Analyzer() {
         actions={
           <>
             <WindowToggle window={report.window} disabled={running} onChange={run} />
+            <ReviewButton onReport={setReport} onError={setReviewError} />
             {runButton}
           </>
         }
       />
+      <ReviewPanel report={report} error={reviewError} />
       <CategoryCards report={report} />
       <UsageBreakdown report={report} />
       <Findings findings={report.findings} />

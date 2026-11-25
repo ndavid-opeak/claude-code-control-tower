@@ -24,6 +24,14 @@ export interface Finding {
   estimated?: boolean;
 }
 
+/** Claude's ranked advice on a report, saved with it. */
+export interface Review {
+  /** Epoch ms. */
+  at: number;
+  /** Markdown, as Claude wrote it. */
+  advice: string;
+}
+
 export interface Report {
   /** Headline, 0-100: the category scores weighted by CATEGORY_WEIGHTS. */
   score: number;
@@ -35,6 +43,7 @@ export interface Report {
   findings: Finding[];
   /** Where the tokens in `window` went. */
   usage: UsageBreakdown;
+  review?: Review;
 }
 
 /** Tokens are input, output and cache writes (cache reads are left out, as in the Sessions breakdown). */

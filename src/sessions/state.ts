@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import type { DesktopMeta } from './collect/desktop.ts';
+import { isReviewCwd } from '../analyzer/review.ts';
 import { readDesktopSessions } from './collect/desktop.ts';
 import type { TableDir } from './collect/projects.ts';
 import { ELSEWHERE, listTables, tableFor } from './collect/projects.ts';
@@ -166,7 +167,7 @@ export function buildHistory(
 ): PastSession[] {
   const out: PastSession[] = [];
   for (const s of scanner.sessions()) {
-    if (live.has(s.sessionId) || !s.cwd || s.cwd.endsWith(USAGE_CHECK_DIR)) continue;
+    if (live.has(s.sessionId) || !s.cwd || s.cwd.endsWith(USAGE_CHECK_DIR) || isReviewCwd(s.cwd)) continue;
     let endedAt: number;
     try {
       endedAt = fs.statSync(s.file).mtimeMs;
@@ -224,7 +225,7 @@ export function collectSnapshot(
   const desktop = readDesktopSessions(paths.desktopSessions);
 
   for (const s of readRegistry(paths.sessions)) {
-    if (s.cwd.endsWith(USAGE_CHECK_DIR)) continue; // the app's own usage check
+    if (s.cwd.endsWith(USAGE_CHECK_DIR) || isReviewCwd(s.cwd)) continue; // the app's own usage check and Analyzer review
     const meta = (s.hostSessionId && desktop.get(s.hostSessionId)) || desktop.get(s.sessionId);
     const transcript = findTranscript(paths.projects, s.cwd, s.sessionId);
     const tail = transcript ? cachedTail(transcript, 256 * 1024) : {};
