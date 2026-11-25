@@ -16,5 +16,6 @@ export default defineConfig({
   build: { outDir: "../dist/web", emptyOutDir: true },
   server: { proxy: { "/api": "http://127.0.0.1:3456" } },
   // Vitest reads this file too; its tests live in test/ at the repo root.
-  test: { root: "." },
+  // Agent worktrees under .claude/worktrees hold copies of the tests; leave them out.
+  test: { root: ".", exclude: ["**/node_modules/**", ".claude/**"] },
 });
