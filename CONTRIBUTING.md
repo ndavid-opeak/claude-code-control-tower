@@ -19,7 +19,7 @@ npm run typecheck  # server and dashboard
 ## Pull requests
 
 - Keep each PR to one change, with tests for new behavior.
-- `npm test` and `npm run typecheck` must pass. CI runs them on macOS, Linux and Windows, along with CodeQL and a dependency review; `main` only accepts changes through a pull request with passing checks.
+- `npm test` and `npm run typecheck` must pass. CI runs them on Linux and Windows (run them yourself if you change macOS-specific code), along with CodeQL and a dependency review; `main` only accepts changes through a pull request with passing checks.
 - Workflows on a pull request from a fork wait until a maintainer approves them.
 - Never commit keys, `.env`, request bodies or real session transcripts. Use made-up data in tests.
 - Keep the security model intact: loopback-only, no telemetry, no writes to Claude Code's own files.

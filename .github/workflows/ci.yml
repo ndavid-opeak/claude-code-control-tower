@@ -13,7 +13,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-15, ubuntu-latest, windows-latest]
+        # No macOS: GitHub never assigned a macOS runner to this repo's jobs. The macOS-only code is
+        # covered here anyway, since its tests pass the platform in, and on a Mac with `npm test`.
+        os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v7
