@@ -1,0 +1,42 @@
+{
+  "name": "claude-router",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Local router that lets Claude Code use Anthropic and Gemini, with per-model fallback chains",
+  "scripts": {
+    "dev": "concurrently -k -n api,web -c blue,magenta \"tsx watch --clear-screen=false src/server.ts\" \"vite\"",
+    "build": "vite build",
+    "start": "tsx src/server.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit && tsc -p web --noEmit"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@hono/node-server": "^2.1.11",
+    "hono": "^4.13.21"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "4.3.5",
+    "@types/node": "^26.6.6",
+    "@types/react": "19.3.1",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.3.0",
+    "class-variance-authority": "0.7.1",
+    "clsx": "2.1.1",
+    "concurrently": "10.0.7",
+    "lucide-react": "1.80.0",
+    "radix-ui": "1.8.1",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "sonner": "2.0.8",
+    "tailwind-merge": "3.7.1",
+    "tailwindcss": "4.3.5",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vite": "8.3.8",
+    "vitest": "^5.1.1"
+  }
+}
