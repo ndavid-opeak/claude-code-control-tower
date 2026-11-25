@@ -4,6 +4,7 @@ import path from 'node:path';
 import type { Hono } from 'hono';
 import { STATE_DIR } from '../config.ts';
 import { analyze } from './analyze.ts';
+import { buildPrompt, estimateTokens, REVIEW_DIR, runClaude, type ReviewRunner } from './review.ts';
 import type { Report, Window } from './types.ts';
 
 const REPORT_FILE = path.join(STATE_DIR, 'analyzer-report.json');
@@ -29,7 +30,14 @@ function saveReport(report: Report): void {
   fs.writeFileSync(REPORT_FILE, JSON.stringify(report, null, 2) + '\n');
 }
 
-export function analyzerRoutes(app: Hono): void {
+export interface AnalyzerOptions {
+  /** Asks Claude for the review; tests pass a fake. */
+  runReview?: ReviewRunner;
+}
+
+export function analyzerRoutes(app: Hono, { runReview = runClaude }: AnalyzerOptions = {}): void {
+  let reviewing = false;
+
   app.get('/api/analyzer/report', (c) => {
     c.header('cache-control', 'no-store');
     return c.json(loadReport());
@@ -42,5 +50,31 @@ export function analyzerRoutes(app: Hono): void {
     const report = analyze({ ...claudePaths(), now: Date.now(), window: window as Window });
     saveReport(report);
     return c.json(report);
+  });
+
+  app.post('/api/analyzer/review/estimate', (c) => {
+    const report = loadReport();
+    if (!report) return c.json({ error: 'run the analysis first' }, 404);
+    return c.json({ tokens: estimateTokens(buildPrompt(report)) });
+  });
+
+  app.post('/api/analyzer/review', async (c) => {
+    const report = loadReport();
+    if (!report) return c.json({ error: 'run the analysis first' }, 404);
+    if (reviewing) return c.json({ error: 'A review is already running.' }, 409);
+    reviewing = true;
+    try {
+      fs.mkdirSync(REVIEW_DIR, { recursive: true });
+      const advice = await runReview({ prompt: buildPrompt(report), cwd: REVIEW_DIR });
+      // A new run during the review replaced the report; the advice would not match it.
+      if (loadReport()?.ranAt !== report.ranAt) return c.json({ error: 'The report changed while Claude was reviewing. Review again.' }, 409);
+      const reviewed = { ...report, review: { at: Date.now(), advice } };
+      saveReport(reviewed);
+      return c.json(reviewed);
+    } catch (err) {
+      return c.json({ error: (err as Error).message }, 502);
+    } finally {
+      reviewing = false;
+    }
   });
 }
