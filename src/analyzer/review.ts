@@ -110,7 +110,7 @@ export const runClaude: ReviewRunner = ({ prompt, cwd }) =>
       claude.args,
       { cwd, shell: claude.shell, timeout: 5 * 60_000, maxBuffer: 8 * 1024 * 1024, env: reviewEnv(process.env) },
       (err, stdout, stderr) => {
-        if (claudeNotFound(err, stderr)) return reject(new Error('The claude command was not found. Start Claude Router from a terminal where "claude" works.'));
+        if (claudeNotFound(err, stderr)) return reject(new Error('The claude command was not found. Start claude-code-control-tower from a terminal where "claude" works.'));
         try {
           resolve(parseOutput(stdout));
         } catch (parseErr) {
