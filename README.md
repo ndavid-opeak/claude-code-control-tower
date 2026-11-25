@@ -100,7 +100,24 @@ For every session, add it to `~/.claude/settings.json` (Claude Code reads `env` 
 }
 ```
 
-With the setting in place, Claude Code can't reach any model while the router is stopped. Remove the line, or keep the router running. With **Anthropic** as the main provider, the router behaves like Anthropic's API, so leaving the setting in costs nothing.
+> **Warning: once `ANTHROPIC_BASE_URL` points at the router, ALL of Claude Code's requests go through it, whichever provider answers them. If the router is down, Claude Code does not fall back to Anthropic's own URL: requests fail with "connection refused" and Claude will not work until the router is running again (or you remove the setting and restart `claude`).**
+
+With **Anthropic** as the main provider the router behaves like Anthropic's API, so while it is running, leaving the setting in costs nothing.
+
+### 8. Start it automatically and keep it running (recommended)
+
+Because Claude Code depends on the router once it points here, run the router so it starts on login and restarts itself if it crashes. On a Mac that is a launchd LaunchAgent with `RunAtLoad` (start at login) and `KeepAlive` (relaunch whenever the process exits).
+
+The easiest way is to ask Claude Code in this folder:
+
+> Set up claude-router to launch automatically when I log in and to restart itself if it stops or crashes. Use a launchd LaunchAgent with absolute paths to node and this repo, log to `~/Library/Logs`, then verify it is running on port 3456.
+
+Things to know:
+
+- launchd does not use your shell's `PATH`, so the agent needs the absolute path to `node` (`which node`) and to this repo.
+- After a restart the request log and captured bodies are empty (they live in memory only); providers, routes and keys are kept.
+- To stop it for good, unload the agent (`launchctl bootout gui/$(id -u)/<label>`) and delete its plist; otherwise `KeepAlive` brings it straight back.
+- If the router still cannot start, Claude Code stays blocked until you fix it or remove `ANTHROPIC_BASE_URL`.
 
 Your Anthropic login is passed through untouched for Anthropic targets and never sent to Google.
 
