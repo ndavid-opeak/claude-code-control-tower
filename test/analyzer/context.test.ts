@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { analyze } from '../../src/analyzer/analyze.ts';
-import { INSTRUCTION_TOKEN_LIMIT, MCP_SERVER_LIMIT, SKILL_DESCRIPTION_TOKEN_LIMIT } from '../../src/analyzer/rules/context/limits.ts';
+import { INSTRUCTION_TOKEN_LIMIT, MCP_SERVER_LIMIT, SKILL_DESCRIPTION_TOKEN_LIMIT, UNUSED_MEDIUM_TOKEN_LIMIT } from '../../src/analyzer/rules/context/limits.ts';
 
 let tmp: string;
 let home: string;
@@ -115,11 +115,23 @@ describe('never-used plugins and skills', () => {
     setup();
     write(claudeJsonPath, JSON.stringify({ skillUsage: { mine: { usageCount: 3 } }, pluginUsage: { 'other@m': { usageCount: 1 } } }));
     const f = context();
-    const plugins = f.filter((x) => x.id.startsWith('context/unused-plugin'));
-    const skills = f.filter((x) => x.id.startsWith('context/unused-skill'));
+    expect(f).toHaveLength(1);
+    expect(f[0].id).toContain('unused-plugin:p@m');
+    expect(f[0].title).toContain('never used');
+    expect(f[0].severity).toBe('low');
+  });
+  it('lists the unused skills of a used plugin in one finding, and user skills in another', () => {
+    setup();
+    skill(path.join(home, 'skills'), 'mine2', 'd');
+    write(claudeJsonPath, JSON.stringify({ skillUsage: { mine: { usageCount: 3 } }, pluginUsage: { 'p@m': { usageCount: 1 } } }));
+    const f = context();
     expect(f).toHaveLength(2);
-    expect(plugins[0].detail).toContain('p@m');
-    expect(skills[0].detail).toContain('p:sk');
-    expect(skills[0].severity).toBe('low');
+    expect(f.find((x) => x.id.startsWith('context/unused-plugin-skills'))?.detail).toContain('sk');
+    expect(f.find((x) => x.id === 'context/unused-user-skills')?.detail).toContain('mine2');
+  });
+  it('raises severity with the description text the unused skills carry', () => {
+    skill(path.join(home, 'skills'), 'wordy', 'x'.repeat(UNUSED_MEDIUM_TOKEN_LIMIT * 4));
+    write(claudeJsonPath, JSON.stringify({ skillUsage: { other: { usageCount: 1 } } }));
+    expect(context()[0].severity).toBe('medium');
   });
 });

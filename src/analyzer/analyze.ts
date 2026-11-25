@@ -1,3 +1,4 @@
+import { scanUsage } from './rules/usage/scan.ts';
 import { RULES } from './rules/index.ts';
 import type { RuleContext } from './rules/types.ts';
 import { CATEGORY_WEIGHTS, type Category, type Finding, type Report, type Severity } from './types.ts';
@@ -25,5 +26,5 @@ export function analyze(input: AnalyzeInput): Report {
     categories[category] = Math.max(0, 100 - lost);
     weighted += categories[category] * CATEGORY_WEIGHTS[category];
   }
-  return { score: Math.round(weighted / 100), window: input.window, ranAt: input.now, categories, findings };
+  return { score: Math.round(weighted / 100), window: input.window, ranAt: input.now, categories, findings, usage: scanUsage(input).breakdown };
 }

@@ -41,5 +41,21 @@ export interface Report {
   categories: Record<Category, number>;
   /** Worst first. */
   findings: Finding[];
+  /** Where the tokens in `window` went. */
+  usage: UsageBreakdown;
   review?: Review;
+}
+
+/** Tokens are input, output and cache writes (cache reads are left out, as in the Sessions breakdown). */
+export interface UsageBreakdown {
+  window: Window;
+  totalTokens: number;
+  /** Cache reads as a share of all input-side tokens (0-1); null when there was no input. */
+  cacheShare: number | null;
+  /** Biggest first. */
+  byProject: { project: string; tokens: number; sessions: number }[];
+  /** By model family (opus, sonnet, haiku, ...), biggest first. */
+  byModel: { model: string; tokens: number }[];
+  /** The biggest sessions, subagents included in their session. */
+  bySession: { sessionId: string; project: string; tokens: number; subagentTokens: number; peakContext: number; compacted: boolean }[];
 }
