@@ -15,7 +15,7 @@ function words(command: string): string[] {
   return out;
 }
 
-/** The script a hook command runs, when it names one by absolute or home-relative path. */
+/** The script a hook command runs, when it names one by absolute or home-relative path (POSIX or Windows). */
 function scriptOf(command: string): string | undefined {
   const parts = words(command);
   let i = 0;
@@ -23,8 +23,8 @@ function scriptOf(command: string): string | undefined {
     i = 1;
     while (parts[i]?.startsWith('-')) i++;
   }
-  const word = parts[i]?.replace(/^(~|\$HOME|\$\{HOME\})(?=\/)/, os.homedir());
-  return word?.startsWith('/') ? word : undefined;
+  const word = parts[i]?.replace(/^(~|\$HOME|\$\{HOME\}|%USERPROFILE%)(?=[\\/])/, os.homedir());
+  return word && path.isAbsolute(word) ? word : undefined;
 }
 
 function commandsOf(settings: any): string[] {
