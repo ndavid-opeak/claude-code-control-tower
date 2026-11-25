@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Toaster } from "sonner";
 import { DefaultPicker } from "@/components/DefaultProvider";
 import { NowServing } from "@/components/NowServing";
+import { ThemeSwitch, useTheme } from "@/components/ThemeSwitch";
 import { Badge } from "@/components/ui";
 import { useAppState } from "@/lib/hooks";
 import { useWaitingAlerts } from "@/lib/sessions/alerts";
@@ -36,6 +37,7 @@ function pageFromHash(): PageId {
 export function App() {
   const app = useAppState();
   const [page, setPage] = useState<PageId>(pageFromHash);
+  const [theme, setTheme] = useTheme();
   useEffect(() => {
     const onHash = () => setPage(pageFromHash());
     addEventListener("hashchange", onHash);
@@ -62,7 +64,7 @@ export function App() {
 
   return (
     <div className="flex min-h-screen flex-col md:flex-row">
-      <aside className="border-b bg-card md:sticky md:top-0 md:h-screen md:w-56 md:shrink-0 md:border-r md:border-b-0">
+      <aside className="z-30 flex flex-col border-b bg-card md:sticky md:top-0 md:h-screen md:w-56 md:shrink-0 md:border-r md:border-b-0">
         <div className="flex items-center gap-2 px-4 py-4 md:px-5 md:py-5">
           <div className="grid size-7 place-items-center rounded-lg bg-primary text-primary-foreground">
             <Waypoints className="size-4" />
@@ -89,10 +91,11 @@ export function App() {
             </a>
           ))}
         </nav>
+        <ThemeSwitch theme={theme} onChange={setTheme} className="mx-4 mb-3 self-start md:mx-5 md:mt-auto md:mb-5" />
       </aside>
 
       <main className="min-w-0 flex-1">
-        <header className="sticky top-0 z-20 flex h-14 items-center justify-between gap-3 border-b bg-background/90 px-4 backdrop-blur md:px-8">
+        <header className="sticky top-0 z-20 flex h-14 items-center justify-between gap-3 border-b bg-background/55 px-4 backdrop-blur-xl backdrop-saturate-150 md:px-8">
           <h1 className="text-lg font-semibold tracking-tight">{current.label}</h1>
           {app.state && (
             <div className="flex items-center gap-3">
@@ -123,7 +126,7 @@ export function App() {
           </div>
         )}
       </main>
-      <Toaster position="bottom-right" richColors closeButton />
+      <Toaster position="bottom-right" richColors closeButton theme={theme} />
     </div>
   );
 }
