@@ -49,6 +49,8 @@ export interface Config {
 }
 
 export const STATE_DIR = process.env.CLAUDE_ROUTER_HOME ?? join(homedir(), ".claude-router");
+/** The folder the Analyzer runs its own Claude sessions in; usage checks leave transcripts from it out. */
+export const ANALYZER_REVIEW_DIR = join(STATE_DIR, "analyzer-review");
 const FILE = join(STATE_DIR, "config.json");
 
 export const DEFAULT_CONFIG: Config = {

@@ -1,4 +1,4 @@
-import type { Report } from "@server/analyzer/types.ts";
+import type { Report, Window } from "@server/analyzer/types.ts";
 import { Loader2, Play } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -6,6 +6,7 @@ import { Button, Card, CardContent } from "@/components/ui";
 import { api } from "@/lib/api";
 import { CategoryCards, ScoreHeader } from "@/pages/analyzer/Scores";
 import { Findings } from "@/pages/analyzer/Findings";
+import { UsageBreakdown, WindowToggle } from "@/pages/analyzer/Usage";
 
 export function Analyzer() {
   const [report, setReport] = useState<Report | null | undefined>(undefined);
@@ -18,10 +19,10 @@ export function Analyzer() {
     });
   }, []);
 
-  const run = async () => {
+  const run = async (window?: Window) => {
     setRunning(true);
     try {
-      setReport(await api.runAnalyzer(report?.window));
+      setReport(await api.runAnalyzer(window ?? report?.window));
     } catch (err) {
       toast.error(`Analysis failed: ${(err as Error).message}`);
     } finally {
@@ -30,7 +31,7 @@ export function Analyzer() {
   };
 
   const runButton = (
-    <Button onClick={run} disabled={running}>
+    <Button onClick={() => run()} disabled={running}>
       {running ? <Loader2 className="animate-spin" /> : <Play />} Run
     </Button>
   );
@@ -50,8 +51,17 @@ export function Analyzer() {
   }
   return (
     <div className="grid gap-4">
-      <ScoreHeader report={report} actions={runButton} />
+      <ScoreHeader
+        report={report}
+        actions={
+          <>
+            <WindowToggle window={report.window} disabled={running} onChange={run} />
+            {runButton}
+          </>
+        }
+      />
       <CategoryCards report={report} />
+      <UsageBreakdown report={report} />
       <Findings findings={report.findings} />
     </div>
   );
