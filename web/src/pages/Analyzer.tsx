@@ -1,18 +1,19 @@
-import type { Report, Window } from "@server/analyzer/types.ts";
-import { Loader2, Play } from "lucide-react";
+import type { Category, Report, Window } from "@server/analyzer/types.ts";
+import { Loader2, RotateCw } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Button, Card, CardContent } from "@/components/ui";
+import { Button, Card } from "@/components/ui";
 import { api } from "@/lib/api";
-import { CategoryCards, ScoreHeader } from "@/pages/analyzer/Scores";
 import { Findings } from "@/pages/analyzer/Findings";
-import { UsageBreakdown, WindowToggle } from "@/pages/analyzer/Usage";
 import { ReviewButton, ReviewPanel } from "@/pages/analyzer/Review";
+import { ScoreHeader } from "@/pages/analyzer/Scores";
+import { UsageBreakdown, WindowToggle } from "@/pages/analyzer/Usage";
 
 export function Analyzer() {
   const [report, setReport] = useState<Report | null | undefined>(undefined);
   const [running, setRunning] = useState(false);
   const [reviewError, setReviewError] = useState<string>();
+  const [category, setCategory] = useState<Category | null>(null);
 
   useEffect(() => {
     api.analyzerReport().then(setReport, (err) => {
@@ -27,47 +28,50 @@ export function Analyzer() {
       setReport(await api.runAnalyzer(window ?? report?.window));
       setReviewError(undefined);
     } catch (err) {
-      toast.error(`Analysis failed: ${(err as Error).message}`);
+      toast.error(`The check failed: ${(err as Error).message}`);
     } finally {
       setRunning(false);
     }
   };
 
   const runButton = (
-    <Button onClick={() => run()} disabled={running}>
-      {running ? <Loader2 className="animate-spin" /> : <Play />} Run
+    <Button size="sm" onClick={() => run()} disabled={running}>
+      {running ? <Loader2 className="animate-spin" /> : <RotateCw />} {report ? "Check again" : "Check my setup"}
     </Button>
   );
 
-  if (report === undefined) return <p className="text-sm text-muted-foreground">Loading the last report…</p>;
-  if (report === null) {
-    return (
-      <Card>
-        <CardContent className="flex flex-wrap items-center justify-between gap-4 pt-5">
-          <p className="text-sm text-muted-foreground">
-            No report yet. Run checks your Claude Code setup and usage and scores it. It only reads; nothing is changed.
-          </p>
-          {runButton}
-        </CardContent>
-      </Card>
-    );
-  }
   return (
-    <div className="grid gap-4">
-      <ScoreHeader
-        report={report}
-        actions={
-          <>
-            <WindowToggle window={report.window} disabled={running} onChange={run} />
-            <ReviewButton onReport={setReport} onError={setReviewError} />
+    <div>
+      <div className="grid gap-8">
+        {report === undefined && <p className="text-sm text-muted-foreground">Loading the last report…</p>}
+        {report === null && (
+          <Card className="flex flex-wrap items-center justify-between gap-4 p-5">
+            <p className="max-w-prose text-sm text-muted-foreground">
+              Scores your Claude Code setup and the last 30 days of usage, and lists what to fix first. It only reads; nothing is changed.
+            </p>
             {runButton}
+          </Card>
+        )}
+        {report && (
+          <>
+            <ScoreHeader
+              report={report}
+              category={category}
+              onCategory={setCategory}
+              actions={
+                <>
+                  <WindowToggle window={report.window} disabled={running} onChange={run} />
+                  <ReviewButton onReport={setReport} onError={setReviewError} />
+                  {runButton}
+                </>
+              }
+            />
+            <Findings findings={report.findings} category={category} onClearCategory={() => setCategory(null)} />
+            <ReviewPanel report={report} error={reviewError} />
+            <UsageBreakdown report={report} />
           </>
-        }
-      />
-      <ReviewPanel report={report} error={reviewError} />
-      <CategoryCards report={report} />
-      <UsageBreakdown report={report} />
-      <Findings findings={report.findings} />
+        )}
+      </div>
     </div>
   );
 }

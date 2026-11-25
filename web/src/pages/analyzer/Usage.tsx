@@ -1,75 +1,116 @@
 import type { Report, Window } from "@server/analyzer/types.ts";
-import { Button, Card, CardContent, CardDescription } from "@/components/ui";
+import { ChevronRight } from "lucide-react";
+import { useState } from "react";
+import { Card } from "@/components/ui";
+import { cn } from "@/lib/utils";
+import { baseName, shortPath, tokensShort } from "@/pages/analyzer/format";
 
 const WINDOWS: Window[] = [7, 30];
 
 /** Picks the window the usage checks cover; choosing one re-runs the analysis. */
 export function WindowToggle({ window, disabled, onChange }: { window: Window; disabled: boolean; onChange: (w: Window) => void }) {
   return (
-    <div className="flex items-center gap-1" role="group" aria-label="Usage window">
+    <div className="inline-flex h-8 rounded-md border p-0.5" role="group" aria-label="Usage window">
       {WINDOWS.map((w) => (
-        <Button key={w} size="sm" variant={w === window ? "default" : "outline"} disabled={disabled} onClick={() => w !== window && onChange(w)}>
+        <button
+          key={w}
+          type="button"
+          aria-pressed={w === window}
+          disabled={disabled}
+          onClick={() => w !== window && onChange(w)}
+          className={cn(
+            "rounded px-2.5 text-[13px] outline-none focus-visible:ring-3 focus-visible:ring-ring disabled:opacity-50",
+            w === window ? "bg-muted font-medium" : "text-muted-foreground hover:text-foreground",
+          )}
+        >
           {w} days
-        </Button>
+        </button>
       ))}
     </div>
   );
 }
 
-const tokens = (n: number) => n.toLocaleString("en-US");
+const num = (n: number) => n.toLocaleString("en-US");
 
-function Table({ title, head, rows }: { title: string; head: string[]; rows: string[][] }) {
+function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <Card>
-      <CardContent className="grid gap-2 pt-4">
-        <CardDescription>{title}</CardDescription>
-        {rows.length === 0 && <p className="text-[13px] text-muted-foreground">No usage in this window.</p>}
-        {rows.length > 0 && (
-          <table className="w-full text-[13px]">
-            <thead>
-              <tr className="text-left text-xs text-muted-foreground">
-                {head.map((h, i) => (
-                  <th key={h} className={i === 0 ? "font-normal" : "text-right font-normal"}>
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r[0]}>
-                  {r.map((c, i) => (
-                    <td key={i} className={i === 0 ? "max-w-72 truncate py-0.5 pr-3 font-mono text-xs" : "py-0.5 text-right tabular-nums"}>
-                      {c}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </CardContent>
-    </Card>
+    <div className="grid gap-0.5">
+      <span className="text-lg font-semibold tracking-tight tabular-nums">{value}</span>
+      <span className="text-xs text-muted-foreground">{label}</span>
+    </div>
   );
 }
 
-export function UsageBreakdown({ report }: { report: Report }) {
-  const u = report.usage;
+/** A plain table: the first column truncates, numbers line up on the right. */
+function Table({ head, rows }: { head: string[]; rows: { key: string; cells: string[]; title?: string }[] }) {
   return (
-    <div className="grid gap-4">
-      <p className="text-sm text-muted-foreground">
-        Last {u.window} days: {tokens(u.totalTokens)} tokens (input, output and cache writes)
-        {u.cacheShare !== null && `, ${Math.round(u.cacheShare * 100)}% of input read from the cache`}.
-      </p>
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Table title="By project" head={["Project", "Sessions", "Tokens"]} rows={u.byProject.map((p) => [p.project, String(p.sessions), tokens(p.tokens)])} />
-        <Table title="By model" head={["Model", "Tokens"]} rows={u.byModel.map((m) => [m.model, tokens(m.tokens)])} />
+    <table className="w-full table-fixed self-start text-[13px]">
+      <thead>
+        <tr className="text-xs text-muted-foreground">
+          {head.map((h, i) => (
+            <th key={h} className={cn("pb-1.5 font-normal", i === 0 ? "text-left" : "w-24 text-right")}>
+              {h}
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((r) => (
+          <tr key={r.key} className="border-t border-border/60">
+            {r.cells.map((c, i) => (
+              <td key={i} className={cn("py-1.5", i === 0 ? "truncate pr-3" : "text-right tabular-nums")} title={i === 0 ? r.title : undefined}>
+                {c}
+              </td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+/** Usage in the window: three numbers up front, the tables behind "Details". */
+export function UsageBreakdown({ report }: { report: Report }) {
+  const [open, setOpen] = useState(false);
+  const u = report.usage;
+  const top = u.byModel[0];
+  const topShare = top && u.totalTokens > 0 ? Math.round((top.tokens / u.totalTokens) * 100) : null;
+
+  return (
+    <Card className="overflow-hidden">
+      <div className="flex flex-wrap items-end gap-x-10 gap-y-3 p-5">
+        <Stat label={`tokens in ${u.window} days`} value={tokensShort(u.totalTokens)} />
+        {u.cacheShare !== null && <Stat label="of input read from cache" value={`${Math.round(u.cacheShare * 100)}%`} />}
+        {top && topShare !== null && <Stat label={`of tokens on ${top.model}`} value={`${topShare}%`} />}
+        <button
+          type="button"
+          aria-expanded={open}
+          onClick={() => setOpen(!open)}
+          className="ml-auto inline-flex items-center gap-1 rounded-md text-[13px] text-muted-foreground outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring"
+        >
+          {open ? "Hide details" : "Details"}
+          <ChevronRight className={cn("size-4 transition-transform motion-reduce:transition-none", open && "rotate-90")} />
+        </button>
       </div>
-      <Table
-        title="By session (largest first)"
-        head={["Session", "Project", "Tokens", "Subagents"]}
-        rows={u.bySession.map((s) => [s.sessionId, s.project, tokens(s.tokens), tokens(s.subagentTokens)])}
-      />
-    </div>
+      {open && (
+        <div className="grid gap-6 border-t p-5 lg:grid-cols-2">
+          <Table
+            head={["Project", "Sessions", "Tokens"]}
+            rows={u.byProject.slice(0, 10).map((p) => ({ key: p.project, title: p.project, cells: [baseName(p.project), num(p.sessions), tokensShort(p.tokens)] }))}
+          />
+          <Table head={["Model", "Tokens"]} rows={u.byModel.map((m) => ({ key: m.model, cells: [m.model, tokensShort(m.tokens)] }))} />
+          <div className="lg:col-span-2">
+            <Table
+              head={["Largest sessions", "Tokens", "Subagents"]}
+              rows={u.bySession.slice(0, 10).map((s) => ({
+                key: s.sessionId,
+                title: `${s.sessionId}\n${shortPath(s.project)}`,
+                cells: [`${baseName(s.project)} · ${s.sessionId.slice(0, 8)}`, tokensShort(s.tokens), tokensShort(s.subagentTokens)],
+              }))}
+            />
+          </div>
+        </div>
+      )}
+    </Card>
   );
 }
