@@ -48,8 +48,10 @@ export interface Config {
   port: number;
 }
 
-const DIR = process.env.CLAUDE_ROUTER_HOME ?? join(homedir(), ".claude-router");
-const FILE = join(DIR, "config.json");
+export const STATE_DIR = process.env.CLAUDE_ROUTER_HOME ?? join(homedir(), ".claude-router");
+/** The folder the Analyzer runs its own Claude sessions in; usage checks leave transcripts from it out. */
+export const ANALYZER_REVIEW_DIR = join(STATE_DIR, "analyzer-review");
+const FILE = join(STATE_DIR, "config.json");
 
 export const DEFAULT_CONFIG: Config = {
   mode: "anthropic",
@@ -125,7 +127,7 @@ export function getConfig(): Config {
 
 export function updateConfig(patch: Partial<Config>): Config {
   current = { ...getConfig(), ...patch };
-  mkdirSync(DIR, { recursive: true });
+  mkdirSync(STATE_DIR, { recursive: true });
   writeFileSync(FILE, JSON.stringify(current, null, 2) + "\n");
   return current;
 }

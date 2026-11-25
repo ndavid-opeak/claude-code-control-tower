@@ -1,4 +1,4 @@
-import { Activity, LayoutGrid, Route, Server, Settings as SettingsIcon, Waypoints, Workflow } from "lucide-react";
+import { Activity, Gauge, LayoutGrid, Route, Server, Settings as SettingsIcon, Waypoints, Workflow } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Toaster } from "sonner";
 import { DefaultPicker } from "@/components/DefaultProvider";
@@ -9,6 +9,7 @@ import { useWaitingAlerts } from "@/lib/sessions/alerts";
 import { historyOf, sessionsOf } from "@/lib/sessions/sessions";
 import { useSnapshot } from "@/lib/sessions/useSnapshot";
 import { cn } from "@/lib/utils";
+import { Analyzer } from "@/pages/Analyzer";
 import { Logs } from "@/pages/Logs";
 import { Providers } from "@/pages/Providers";
 import { Router } from "@/pages/Router";
@@ -22,6 +23,7 @@ const PAGES = [
   { id: "providers", label: "Providers", icon: Server },
   { id: "routing", label: "Routing", icon: Route },
   { id: "logs", label: "Logs", icon: Activity },
+  { id: "analyzer", label: "Analyzer", icon: Gauge },
   { id: "settings", label: "Settings", icon: SettingsIcon },
 ] as const;
 type PageId = (typeof PAGES)[number]["id"];
@@ -113,6 +115,8 @@ export function App() {
               <Routing app={app} />
             ) : page === "logs" ? (
               <Logs app={app} sessionNames={sessionNames} />
+            ) : page === "analyzer" ? (
+              <Analyzer />
             ) : (
               <Settings app={app} />
             )}

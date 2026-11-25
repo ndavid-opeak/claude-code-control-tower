@@ -1,4 +1,6 @@
 // Shapes of the router's dashboard API (src/server.ts, src/config.ts, src/log.ts).
+// Relative, not @server: the root tsconfig also compiles this file (test/defaultProvider.test.ts) without that alias.
+import type { Report, Window } from "../../../src/analyzer/types.ts";
 
 export type Family = "opus" | "sonnet" | "haiku";
 export const FAMILIES: Family[] = ["opus", "sonnet", "haiku"];
@@ -91,6 +93,10 @@ export const api = {
   logs: (session?: string) => call<LogEntry[]>("GET", session ? `/api/logs?session=${encodeURIComponent(session)}` : "/api/logs"),
   log: (id: number) => call<LogEntry>("GET", `/api/logs/${id}`),
   openTerminal: (session: string) => call<{ opened: string; resumed?: boolean }>("POST", "/api/sessions/terminal", { session }),
+  analyzerReport: () => call<Report | null>("GET", "/api/analyzer/report"),
+  runAnalyzer: (window?: Window) => call<Report>("POST", "/api/analyzer/run", { window }),
+  estimateReview: () => call<{ tokens: number }>("POST", "/api/analyzer/review/estimate", {}),
+  reviewAnalyzer: () => call<Report>("POST", "/api/analyzer/review", {}),
 };
 
 export function providerName(p: Provider): string {
