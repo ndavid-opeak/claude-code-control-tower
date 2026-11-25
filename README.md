@@ -1,5 +1,10 @@
 <div align="center">
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/logo-dark.svg">
+  <img src="docs/assets/logo-light.svg" alt="claude-code-control-tower logo" width="96">
+</picture>
+
 # claude-code-control-tower
 
 **Mission control for Claude Code, running entirely on your machine.**
@@ -119,13 +124,13 @@ For one session:
 ANTHROPIC_BASE_URL=http://127.0.0.1:3456 claude
 ```
 
+On Windows (PowerShell): `$env:ANTHROPIC_BASE_URL="http://127.0.0.1:3456"; claude`
+
 For every session, add it to `~/.claude/settings.json` (Claude Code reads `env` from there, including in VS Code):
 
 ```json
 {
   "env": { "ANTHROPIC_BASE_URL": "http://127.0.0.1:3456" }
-On Windows (PowerShell): `$env:ANTHROPIC_BASE_URL="http://127.0.0.1:3456"; claude`
-
 }
 ```
 
@@ -162,11 +167,6 @@ Things to know:
 - To stop it for good, unload the agent (`launchctl bootout gui/$(id -u)/<label>`) and delete its plist; otherwise `KeepAlive` brings it straight back.
 - If the router still cannot start, Claude Code stays blocked until you fix it or remove `ANTHROPIC_BASE_URL`.
 
-Your Anthropic login is passed through untouched for Anthropic targets and never sent to Google.
-
----
-
-## Everyday use
 #### Linux (systemd user service)
 
 Install the template in `autostart/linux/` (run from the repo folder, after `npm install`):
@@ -191,6 +191,11 @@ powershell -ExecutionPolicy Bypass -File autostart\windows\install-task.ps1
 
 It registers a task named `claude-code-control-tower` that starts at logon and restarts (once a minute, if it exits with an error). Logs go to `%USERPROFILE%\.claude-router\router.log`. Restart it with `Stop-ScheduledTask` / `Start-ScheduledTask -TaskName claude-code-control-tower`; remove it with `Unregister-ScheduledTask -TaskName claude-code-control-tower -Confirm:$false`.
 
+Your Anthropic login is passed through untouched for Anthropic targets and never sent to Google.
+
+---
+
+## Everyday use
 
 - **Sessions** (main page): three columns, **Waiting for me**, **Working**, **Done**. Each card shows its project (a folder directly inside your projects folder) or its own folder marked "no project", the branch, what it asks or is doing, time in that state, context use and subagents. Waiting cards have a red **Reply in VS Code / the Claude app** button. Sessions that went through the router show which provider and model answered them (and any fallback). **Ended recently** at the bottom lists sessions from the last 24 hours.
 - **Terminal buttons**: on macOS, a session running in Terminal or iTerm2 has a **Show terminal** button (**Reply in Terminal** when it is waiting for you) that brings its window to the front. The first use may ask macOS to let the router control Terminal (System Settings > Privacy & Security > Automation); other terminals can't be focused, and Linux and Windows have no such button. An ended session's panel has **Resume in terminal**, which opens a new terminal window in the session's folder running `claude --resume <id>`: Terminal on macOS, Windows Terminal (or Command Prompt) on Windows, and `$TERMINAL` or the first of `x-terminal-emulator`, `gnome-terminal`, `konsole`, `xfce4-terminal`, `kitty`, `alacritty`, `xterm` on Linux. A session still running in VS Code or the Claude app has no such button, because resuming it in a terminal would run two copies.
@@ -300,12 +305,12 @@ npm run build      # dashboard into dist/web
 | `src/providers/` | Anthropic pass-through; Gemini translation (`gemini/`) |
 | `src/sessions/` | session readers and their API (from Claude Office) |
 | `launchd/` | macOS LaunchAgent template that starts the router at login and restarts it |
+| `autostart/` | the same for Linux (systemd user service) and Windows (Task Scheduler script) |
 | `web/` | dashboard (React, Tailwind) |
 | `test/` | tests |
 
 ---
 
-| `autostart/` | the same for Linux (systemd user service) and Windows (Task Scheduler script) |
 ## Contributing and license
 
 Issues and pull requests are welcome, see [CONTRIBUTING.md](CONTRIBUTING.md). Released under the [MIT License](LICENSE).
