@@ -1,9 +1,32 @@
+<div align="center">
+
 # claude-router
 
-One local app for working with Claude Code:
+**Mission control for Claude Code, running entirely on your Mac.**
 
-- **Sessions**: every Claude Code session on this Mac (terminal, VS Code, Claude desktop app) on one board: who is waiting for you, what is working, what is done, how full each context is, and your plan's usage. (Formerly Claude Office.)
-- **Router**: a local proxy that Claude Code can talk to instead of Anthropic's API. It sends each request to **Anthropic** (unchanged, your own login) or to **Google Gemini** (translated), following a fallback chain per model, with a dashboard to manage providers, routes and logs.
+See every Claude Code session at a glance, route models across Anthropic and Gemini with automatic fallback,<br>and tune your setup. No cloud, no telemetry, no accounts.
+
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+![Platform: macOS](https://img.shields.io/badge/platform-macOS-lightgrey.svg)
+![Node 22+](https://img.shields.io/badge/node-%3E%3D22-339933.svg)
+![Local only](https://img.shields.io/badge/runs-127.0.0.1%20only-success.svg)
+![No telemetry](https://img.shields.io/badge/telemetry-none-success.svg)
+
+[Set up](#set-up) · [Everyday use](#everyday-use) · [Security](#security) · [Contributing](CONTRIBUTING.md)
+
+</div>
+
+> **Independent project.** claude-router is a personal open-source project. It is not affiliated with, endorsed by or supported by Anthropic or Google. "Claude" and "Claude Code" are trademarks of Anthropic; "Gemini" is a trademark of Google.
+
+## Why claude-router
+
+| | |
+|---|---|
+| 🗂️ **Sessions board** | Every Claude Code session on this Mac (terminal, VS Code, Claude desktop app) in one place: who is waiting for you, what is working, what is done, how full each context is, and your plan's usage. Chimes when a session needs you. |
+| 🔀 **Model router** | A local proxy Claude Code talks to instead of Anthropic's API. Each request goes to **Anthropic** (unchanged, your own login) or **Google Gemini** (translated, streaming and tools included), following a fallback chain per model family. |
+| 🛟 **Automatic fallback** | If a target fails before replying, the next one answers. End each chain with Anthropic and a request always gets answered. |
+| 🩺 **Setup analyzer** | Finds what bloats your context and wastes tokens: oversized instructions, duplicate skills and MCP servers, unused setup, broken hooks. |
+| 🔒 **Secure by design** | Loopback only, DNS-rebinding protection, write-only keys, prompts kept in memory only, zero telemetry. [Details below](#security). |
 
 ```
 claude ──► http://127.0.0.1:3456/v1/messages ──► route for opus / sonnet / haiku
@@ -213,9 +236,17 @@ Credential files and `*.key` files are never opened. These files are Claude Code
 
 ### Security
 
-- Everything listens on 127.0.0.1 only.
-- The dashboard API rejects requests whose `Host` or `Origin` isn't this computer (blocks DNS rebinding and other websites) and requires JSON for every write.
-- Keys are write-only from the dashboard.
+claude-router sees your prompts and holds your keys, so it keeps both on your machine:
+
+- **Local only.** The server listens on `127.0.0.1`; nothing on your network can reach it.
+- **Locked to this computer.** The dashboard API rejects requests whose `Host` or `Origin` isn't loopback (blocks DNS rebinding and other websites) and requires JSON for every write.
+- **Write-only keys.** Keys go to the git-ignored `.env` with mode 600 and are never shown again or returned by the API.
+- **Your Anthropic login stays with Anthropic.** It is passed through untouched and never sent to Google.
+- **No prompts on disk.** The request log is in memory; body capture is opt-in, capped at 20 and cleared on restart.
+- **No telemetry.** The only outbound calls go to the providers you route to.
+- **Read-only on Claude Code.** The Sessions page never changes Claude's files and never opens credential files.
+
+Found a problem? Please report it privately, see [SECURITY.md](SECURITY.md).
 
 ---
 
@@ -237,3 +268,11 @@ npm run build      # dashboard into dist/web
 | `launchd/` | macOS LaunchAgent template that starts the router at login and restarts it |
 | `web/` | dashboard (React, Tailwind) |
 | `test/` | tests |
+
+---
+
+## Contributing and license
+
+Issues and pull requests are welcome, see [CONTRIBUTING.md](CONTRIBUTING.md). Released under the [MIT License](LICENSE).
+
+claude-router is an independent project and is not affiliated with Anthropic or Google.

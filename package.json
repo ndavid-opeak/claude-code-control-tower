@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "description": "Local router that lets Claude Code use Anthropic and Gemini, with per-model fallback chains",
+  "license": "MIT",
   "scripts": {
     "dev": "concurrently -k -n api,web -c blue,magenta \"tsx watch --clear-screen=false src/server.ts\" \"vite\"",
     "build": "vite build",
