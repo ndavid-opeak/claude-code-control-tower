@@ -1,9 +1,10 @@
-import { CircleAlert, ExternalLink, GitPullRequest, OctagonAlert, SquareTerminal } from "lucide-react";
+import { CircleAlert, ExternalLink, GitPullRequest, OctagonAlert, SquareTerminal, Star } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import type { ContextLevel, MainAgent, PullRequest, RouterSummary } from "@server/sessions/types.ts";
-import { Badge } from "@/components/ui";
+import { Badge, Input } from "@/components/ui";
 import { api } from "@/lib/api";
+import { allowAlerts } from "@/lib/sessions/alerts";
 import { APP_NAME, withoutLinks } from "@/lib/sessions/format";
 import { cn } from "@/lib/utils";
 
@@ -197,5 +198,64 @@ export function ProjectLabel({ project, inProject, branch }: { project: string; 
         </span>
       )}
     </span>
+  );
+}
+
+/** Flags or unflags a session. A flagged session sorts first and alerts you when it finishes or starts waiting. */
+export function FlagButton({ agent, className }: { agent: MainAgent; className?: string }) {
+  const [busy, setBusy] = useState(false);
+  const flagged = !!agent.flag;
+  const toggle = async () => {
+    setBusy(true);
+    try {
+      if (flagged) await api.unflag(agent.sessionId);
+      else {
+        void allowAlerts(); // this click is the one chance to ask for notifications and sound
+        await api.flag(agent.sessionId);
+      }
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <button
+      type="button"
+      aria-pressed={flagged}
+      aria-label={flagged ? "Unflag this session" : "Flag this session"}
+      title={flagged ? "Flagged: alerts you when it finishes or waits for you. Click to unflag." : "Flag to keep an eye on it: pins it first and alerts you when it finishes or waits for you."}
+      disabled={busy}
+      onClick={toggle}
+      className={cn("grid size-7 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-50", flagged && "text-warning hover:text-warning", className)}
+    >
+      <Star className={cn("size-4", flagged && "fill-current")} />
+    </button>
+  );
+}
+
+/** The flag's note, saved when you leave the field or press Enter. */
+export function FlagNote({ agent }: { agent: MainAgent }) {
+  const saved = agent.flag?.note ?? "";
+  const [text, setText] = useState(saved);
+  const save = async () => {
+    if (text.trim() === saved) return;
+    try {
+      await api.flag(agent.sessionId, text);
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
+  return (
+    <Input
+      aria-label="Flag note"
+      placeholder="Add a note to this flag"
+      maxLength={80}
+      value={text}
+      onChange={(e) => setText(e.target.value)}
+      onBlur={save}
+      onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
+      className="h-8 text-[13px]"
+    />
   );
 }

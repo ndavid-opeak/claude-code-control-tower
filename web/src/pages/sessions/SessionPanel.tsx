@@ -9,7 +9,7 @@ import type { Session } from "@/lib/sessions/sessions";
 import { useNow } from "@/lib/sessions/useSnapshot";
 import { cn } from "@/lib/utils";
 import { Conversation } from "./Conversation";
-import { CONTEXT_LEVEL_TEXT, ContextMark, OpenLink, PrLinks, ProjectLabel, Rich, TerminalButton } from "./bits";
+import { CONTEXT_LEVEL_TEXT, ContextMark, FlagButton, FlagNote, OpenLink, PrLinks, ProjectLabel, Rich, TerminalButton } from "./bits";
 
 export type PanelView = "overview" | "conversation" | "router";
 
@@ -54,11 +54,15 @@ export function SessionPanel({ session, view, onView, onClose }: { session: Sess
             {status.text}
             {status.time && <span className="font-normal opacity-80">{status.time}</span>}
           </span>
-          <Button variant="ghost" size="icon" aria-label="Close details" onClick={onClose}>
-            <X />
-          </Button>
+          <span className="flex items-center gap-1">
+            <FlagButton agent={agent} className="size-9" />
+            <Button variant="ghost" size="icon" aria-label="Close details" onClick={onClose}>
+              <X />
+            </Button>
+          </span>
         </div>
         <h2 className="text-base leading-snug font-semibold">{agent.name}</h2>
+        {agent.flag && <FlagNote key={`${agent.sessionId}:${agent.flag.note ?? ""}`} agent={agent} />}
         <ProjectLabel project={project} inProject={inProject} branch={agent.branch} />
         <div className="flex flex-wrap items-center gap-1.5">
           <OpenLink agent={agent} strong={agent.state === "waiting" && !session.ended} ended={session.ended} />

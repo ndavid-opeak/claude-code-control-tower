@@ -93,6 +93,8 @@ export const api = {
   logs: (session?: string) => call<LogEntry[]>("GET", session ? `/api/logs?session=${encodeURIComponent(session)}` : "/api/logs"),
   log: (id: number) => call<LogEntry>("GET", `/api/logs/${id}`),
   openTerminal: (session: string) => call<{ opened: string; resumed?: boolean }>("POST", "/api/sessions/terminal", { session }),
+  flag: (session: string, note?: string) => call<unknown>("PUT", `/api/sessions/flags/${encodeURIComponent(session)}`, { note }),
+  unflag: (session: string) => call<unknown>("DELETE", `/api/sessions/flags/${encodeURIComponent(session)}`),
   analyzerReport: () => call<Report | null>("GET", "/api/analyzer/report"),
   runAnalyzer: (window?: Window) => call<Report>("POST", "/api/analyzer/run", { window }),
   estimateReview: () => call<{ tokens: number }>("POST", "/api/analyzer/review/estimate", {}),
