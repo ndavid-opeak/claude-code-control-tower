@@ -5,7 +5,7 @@ import { activityText, contextFraction, duration, lineOf, nearCompact, QUIET_MS 
 import { COLUMNS, inColumn, type Session } from "@/lib/sessions/sessions";
 import { useNow } from "@/lib/sessions/useSnapshot";
 import { cn } from "@/lib/utils";
-import { ContextRing, OpenLink, PrLinks, ProjectLabel, RouterBadge } from "./bits";
+import { ContextRing, FlagButton, OpenLink, PrLinks, ProjectLabel, RouterBadge } from "./bits";
 
 interface Props {
   sessions: Session[];
@@ -94,8 +94,9 @@ function Card({ session: { agent, project, inProject }, now, open, onOpen }: { s
       )}
     >
       <button type="button" aria-pressed={open} onClick={() => onOpen(agent.sessionId)} className="grid w-full min-w-0 gap-1.5 px-4 pt-3 pb-2 text-left">
-        <span className="line-clamp-2 text-[14px] leading-snug font-semibold">{agent.name}</span>
+        <span className="line-clamp-2 pr-7 text-[14px] leading-snug font-semibold">{agent.name}</span>
         <ProjectLabel project={project} inProject={inProject} branch={agent.branch} />
+        {agent.flag?.note && <span className="line-clamp-1 text-[13px] font-medium text-warning">{agent.flag.note}</span>}
         <span className={cn("line-clamp-2 text-[13px]", agent.state === "waiting" ? "text-foreground" : "text-muted-foreground")}>{says}</span>
         <span className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
           <span className="tabular-nums">{when}</span>
@@ -114,6 +115,7 @@ function Card({ session: { agent, project, inProject }, now, open, onOpen }: { s
           {quietFor >= QUIET_MS && <Badge variant="warning">Nothing new for {duration(quietFor)}</Badge>}
         </span>
       </button>
+      <FlagButton agent={agent} className="absolute top-2 right-2" />
       {(agent.openUrl || agent.app === "terminal" || agent.prs?.length || agent.router) && (
         <div className="flex flex-wrap items-center gap-1.5 border-t bg-muted/30 px-4 py-2">
           <OpenLink agent={agent} strong={agent.state === "waiting"} />
@@ -158,6 +160,7 @@ function History({ history, now, openId, onOpen }: { history: Session[]; now: nu
                   <RouterBadge router={agent.router} />
                   <PrLinks prs={agent.prs} max={2} />
                 </span>
+                <FlagButton agent={agent} />
               </li>
             ))}
           </ul>

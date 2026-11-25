@@ -62,6 +62,13 @@ export interface MainAgent {
   subagents: SubAgent[];
   /** The newest request this session sent through claude-router, if any. */
   router?: RouterSummary;
+  /** Set when you flagged this session to keep an eye on it. */
+  flag?: SessionFlag;
+}
+
+/** claude-router: a session you flagged, with an optional note. */
+export interface SessionFlag {
+  note?: string;
 }
 
 /** claude-router: who served a session's latest request. */
@@ -135,6 +142,7 @@ export interface PastSession {
   app: MainAgent['app'];
   openUrl?: string;
   router?: RouterSummary;
+  flag?: SessionFlag;
 }
 
 export interface Snapshot {

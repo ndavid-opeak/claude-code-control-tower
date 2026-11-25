@@ -27,9 +27,18 @@ function chime() {
   }
 }
 
+/** Unlocks sound and asks for notification permission. Call it from a click. */
+export async function allowAlerts() {
+  chime();
+  if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+    await Notification.requestPermission();
+  }
+}
+
 /**
  * Chimes, and shows a system notification while the page is in the background, whenever a session
- * moves into Waiting for me. Clicking the notification brings the page forward with that session open.
+ * moves into Waiting for me (with alerts on), or a flagged session starts waiting or finishes its turn
+ * (always). Clicking the notification brings the page forward with that session open.
  */
 export function useWaitingAlerts(sessions: Session[] | null, onOpen: (sessionId: string) => void) {
   const [on, setOn] = useState(() => {
@@ -40,24 +49,29 @@ export function useWaitingAlerts(sessions: Session[] | null, onOpen: (sessionId:
     }
   });
   const [blocked, setBlocked] = useState(() => typeof Notification !== 'undefined' && Notification.permission === 'denied');
-  const previous = useRef<Set<string> | null>(null);
+  const previous = useRef<Map<string, string> | null>(null);
 
   useEffect(() => {
     if (!sessions) return;
-    const waiting = new Set(sessions.filter((s) => s.agent.state === 'waiting').map((s) => s.agent.sessionId));
     const before = previous.current;
-    previous.current = waiting;
-    // Nothing fires for what was already waiting when the page opened.
-    if (!before || !on) return;
-    const fresh = sessions.filter((s) => waiting.has(s.agent.sessionId) && !before.has(s.agent.sessionId));
+    previous.current = new Map(sessions.map((s) => [s.agent.sessionId, s.agent.state]));
+    // Nothing fires for what was already waiting or done when the page opened.
+    if (!before) return;
+    const fresh = sessions.filter(({ agent }) => {
+      const was = before.get(agent.sessionId);
+      if (agent.state === 'waiting' && was !== 'waiting') return on || !!agent.flag;
+      // A flagged session finishing its turn; one that was never seen working (newly opened) does not count.
+      return !!agent.flag && agent.state === 'done' && (was === 'working' || was === 'waiting');
+    });
     if (fresh.length === 0) return;
     chime();
     if (document.visibilityState === 'visible' || typeof Notification === 'undefined' || Notification.permission !== 'granted') {
       return;
     }
     for (const { agent } of fresh) {
-      const n = new Notification(`${agent.name} is waiting for you`, {
-        body: lineOf(agent.ask, 'first') || agent.reason || '',
+      const done = agent.state === 'done';
+      const n = new Notification(done ? `${agent.name} finished its turn` : `${agent.name} is waiting for you`, {
+        body: agent.flag?.note || (done ? agent.summary || lineOf(agent.output, 'first') : lineOf(agent.ask, 'first') || agent.reason) || '',
         tag: agent.sessionId,
       });
       n.onclick = () => {
@@ -71,10 +85,7 @@ export function useWaitingAlerts(sessions: Session[] | null, onOpen: (sessionId:
   const toggle = async () => {
     const next = !on;
     if (next) {
-      chime(); // also unlocks sound for later, since this runs on a click
-      if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
-        await Notification.requestPermission();
-      }
+      await allowAlerts(); // also unlocks sound for later, since this runs on a click
       setBlocked(typeof Notification !== 'undefined' && Notification.permission === 'denied');
     }
     setOn(next);

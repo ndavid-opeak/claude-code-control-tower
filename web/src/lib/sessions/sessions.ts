@@ -22,7 +22,7 @@ export function sessionsOf(snapshot: Snapshot): Session[] {
 
 /** Ended sessions in the same shape as live ones, so the panel can show them. */
 export function historyOf(snapshot: Snapshot): Session[] {
-  return (snapshot.history ?? []).map((h: PastSession) => ({
+  return (snapshot.history ?? []).map((h: PastSession): Session => ({
     project: h.project,
     inProject: h.inProject ?? true,
     ended: true,
@@ -43,8 +43,9 @@ export function historyOf(snapshot: Snapshot): Session[] {
       prs: h.prs,
       subagents: [],
       router: h.router,
+      flag: h.flag,
     },
-  }));
+  })).sort(flaggedFirst);
 }
 
 export const COLUMNS: { state: MainState; title: string; empty: string }[] = [
@@ -53,10 +54,14 @@ export const COLUMNS: { state: MainState; title: string; empty: string }[] = [
   { state: 'done', title: 'Done', empty: 'No finished sessions.' },
 ];
 
-/** Longest wait first, longest-running turn first, most recently finished first. Sessions with no activity sit under Done. */
+/** Flagged sessions before the rest; a stable sort keeps the order within each group. */
+const flaggedFirst = (a: Session, b: Session) => Number(!!b.agent.flag) - Number(!!a.agent.flag);
+
+/** Flagged first, then longest wait first, longest-running turn first, most recently finished first. Sessions with no activity sit under Done. */
 export function inColumn(sessions: Session[], state: MainState): Session[] {
   const list = sessions.filter((s) => s.agent.state === state || (state === 'done' && s.agent.state === 'idle'));
-  if (state === 'waiting') return list.sort((a, b) => (a.agent.since ?? 0) - (b.agent.since ?? 0));
-  if (state === 'working') return list.sort((a, b) => (a.agent.turnStartedAt ?? 0) - (b.agent.turnStartedAt ?? 0));
-  return list.sort((a, b) => (b.agent.since ?? 0) - (a.agent.since ?? 0));
+  if (state === 'waiting') list.sort((a, b) => (a.agent.since ?? 0) - (b.agent.since ?? 0));
+  else if (state === 'working') list.sort((a, b) => (a.agent.turnStartedAt ?? 0) - (b.agent.turnStartedAt ?? 0));
+  else list.sort((a, b) => (b.agent.since ?? 0) - (a.agent.since ?? 0));
+  return list.sort(flaggedFirst);
 }

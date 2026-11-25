@@ -4,6 +4,7 @@ import type { Hono } from 'hono';
 import { streamSSE } from 'hono/streaming';
 import { getConfig } from '../config.ts';
 import { getLogs } from '../log.ts';
+import { clearFlag, getFlags, NOTE_MAX, SESSION_ID, setFlag, syncFlags } from './flags.ts';
 import { readConversation } from './collect/conversation.ts';
 import { findTranscript } from './collect/transcript.ts';
 import { LiveUsage, TranscriptScanner } from './collect/usage.ts';
@@ -54,6 +55,13 @@ function tick(): void {
   const router = routerSummaries();
   for (const t of snapshot.tables) for (const a of t.agents) a.router = router.get(a.sessionId);
   for (const h of snapshot.history) h.router = router.get(h.sessionId);
+  const shown = [...snapshot.tables.flatMap((t) => t.agents), ...snapshot.history];
+  syncFlags(new Set(shown.map((s) => s.sessionId)));
+  const flags = getFlags();
+  for (const s of shown) {
+    const f = flags[s.sessionId];
+    if (f) s.flag = f.note ? { note: f.note } : {};
+  }
 
   const key = JSON.stringify({ ...snapshot, generatedAt: 0 });
   const frame = key === lastKey ? ':\n\n' : `data: ${JSON.stringify(snapshot)}\n\n`;
@@ -162,6 +170,30 @@ export function sessionRoutes(app: Hono): void {
       return c.json({ error: (e as Error).message }, 500);
     }
     return c.json({ error: 'That session is not on the board or in its recent history.' }, 404);
+  });
+
+  // Flags: sessions you keep an eye on, saved in the app's state folder and shown on the board.
+  app.get('/api/sessions/flags', (c) => c.json(getFlags()));
+
+  app.put('/api/sessions/flags/:id', async (c) => {
+    const id = c.req.param('id');
+    if (!SESSION_ID.test(id)) return c.json({ error: 'Bad session id.' }, 400);
+    const body = (await c.req.json().catch(() => null)) as { note?: unknown } | null;
+    const note = body?.note;
+    if (note !== undefined && (typeof note !== 'string' || note.length > NOTE_MAX)) {
+      return c.json({ error: `The note must be text of at most ${NOTE_MAX} characters.` }, 400);
+    }
+    setFlag(id, note);
+    tick();
+    return c.json(getFlags()[id]);
+  });
+
+  app.delete('/api/sessions/flags/:id', (c) => {
+    const id = c.req.param('id');
+    if (!SESSION_ID.test(id)) return c.json({ error: 'Bad session id.' }, 400);
+    clearFlag(id);
+    tick();
+    return c.json({ ok: true });
   });
 
   app.post('/api/sessions/usage/check', (c) => {
