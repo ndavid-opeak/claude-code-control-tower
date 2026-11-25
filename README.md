@@ -138,6 +138,7 @@ Your Anthropic login is passed through untouched for Anthropic targets and never
 ## Everyday use
 
 - **Sessions** (main page): three columns, **Waiting for me**, **Working**, **Done**. Each card shows its project (a folder directly inside your projects folder) or its own folder marked "no project", the branch, what it asks or is doing, time in that state, context use and subagents. Waiting cards have a red **Reply in VS Code / the Claude app** button. Sessions that went through the router show which provider and model answered them (and any fallback). **Ended recently** at the bottom lists sessions from the last 24 hours.
+- **Terminal buttons**: a session running in Terminal or iTerm2 has a **Show terminal** button (**Reply in Terminal** when it is waiting for you) that brings its window to the front. An ended session's panel has **Resume in Terminal**, which opens a new Terminal window in the session's folder running `claude --resume <id>`. A session still running in VS Code or the Claude app has no such button, because resuming it in a terminal would run two copies. The first use may ask macOS to let the router control Terminal (System Settings > Privacy & Security > Automation). Terminals other than Terminal and iTerm2 can't be focused.
 - Click a card for its panel (drag its edge to resize, Escape closes):
   - **Overview**: the question or last message, model, times, context window, subagents and their tokens.
   - **Conversation**: the whole session, read-only. Tool steps fold into one line you can open. You reply in the app the session runs in.
@@ -161,6 +162,7 @@ Your Anthropic login is passed through untouched for Anthropic targets and never
 | "Vertex needs a project" / no Vertex project set | Edit the provider and enter the project ID or number. |
 | A request was answered by Anthropic instead of Gemini | That's the fallback. Open the row in **Logs** to see why the Gemini attempt failed. |
 | Usage strip shows "Saved by Claude … ago" or a problem | The live check needs `claude` on the PATH of the terminal that started the router, and a subscription plan. |
+| "macOS has not allowed claude-router to control the terminal" | Allow it under System Settings > Privacy & Security > Automation (the entry is for the app that runs the router, `node`), then press the button again. |
 | A session is missing from the board | Only sessions on this Mac show, not cloud sessions. A permission prompt shows as waiting only when Claude marks it in its session file. |
 
 ---

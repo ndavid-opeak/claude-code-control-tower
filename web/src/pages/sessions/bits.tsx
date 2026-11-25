@@ -1,7 +1,9 @@
-import { ExternalLink, GitPullRequest } from "lucide-react";
-import type { ReactNode } from "react";
+import { ExternalLink, GitPullRequest, SquareTerminal } from "lucide-react";
+import { useState, type ReactNode } from "react";
+import { toast } from "sonner";
 import type { MainAgent, PullRequest, RouterSummary } from "@server/sessions/types.ts";
 import { Badge } from "@/components/ui";
+import { api } from "@/lib/api";
 import { APP_NAME, withoutLinks } from "@/lib/sessions/format";
 import { cn } from "@/lib/utils";
 
@@ -57,10 +59,10 @@ const OPEN_NOTE: Record<string, string> = {
   desktop: "Opens this session in the Claude desktop app.",
 };
 
-/** A link that switches to the session in the app it runs in, or a plain hint when that app has no link. */
-export function OpenLink({ agent, strong = false }: { agent: MainAgent; strong?: boolean }) {
+/** A link that switches to the session in the app it runs in, or a terminal button for terminal sessions. */
+export function OpenLink({ agent, strong = false, ended = false }: { agent: MainAgent; strong?: boolean; ended?: boolean }) {
   if (!agent.openUrl) {
-    return agent.app === "terminal" ? <span className="text-xs text-muted-foreground">Reply in its terminal</span> : null;
+    return agent.app === "terminal" && !ended ? <TerminalButton agent={agent} strong={strong} /> : null;
   }
   return (
     <a
@@ -75,6 +77,41 @@ export function OpenLink({ agent, strong = false }: { agent: MainAgent; strong?:
       {strong ? `Reply in ${APP_NAME[agent.app]}` : `Open in ${APP_NAME[agent.app]}`}
       <ExternalLink className="size-3" />
     </a>
+  );
+}
+
+/**
+ * A running terminal session: brings its Terminal or iTerm2 window to the front.
+ * An ended session (`ended`): opens a new Terminal window that resumes it in its folder.
+ */
+export function TerminalButton({ agent, strong = false, ended = false }: { agent: MainAgent; strong?: boolean; ended?: boolean }) {
+  const [busy, setBusy] = useState(false);
+  const open = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setBusy(true);
+    try {
+      const r = await api.openTerminal(agent.sessionId);
+      if (r.resumed) toast.success("Resuming in a new Terminal window");
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <button
+      type="button"
+      onClick={open}
+      disabled={busy}
+      title={ended ? "Opens a new Terminal window in the session's folder and resumes it with claude --resume." : "Brings the Terminal or iTerm2 window running this session to the front."}
+      className={cn(
+        "inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors disabled:opacity-60",
+        strong ? "bg-destructive text-white shadow-xs hover:bg-destructive/90" : "text-primary hover:bg-primary/10",
+      )}
+    >
+      {ended ? "Resume in Terminal" : strong ? "Reply in Terminal" : "Show terminal"}
+      <SquareTerminal className="size-3" />
+    </button>
   );
 }
 

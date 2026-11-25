@@ -90,6 +90,7 @@ export const api = {
   probe: (id: string) => call<{ models: string[] }>("POST", `/api/providers/${id}/models/probe`, {}),
   logs: (session?: string) => call<LogEntry[]>("GET", session ? `/api/logs?session=${encodeURIComponent(session)}` : "/api/logs"),
   log: (id: number) => call<LogEntry>("GET", `/api/logs/${id}`),
+  openTerminal: (session: string) => call<{ opened: string; resumed?: boolean }>("POST", "/api/sessions/terminal", { session }),
 };
 
 export function providerName(p: Provider): string {

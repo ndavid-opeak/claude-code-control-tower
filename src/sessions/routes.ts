@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import os from 'node:os';
 import type { Hono } from 'hono';
 import { streamSSE } from 'hono/streaming';
@@ -7,6 +8,7 @@ import { readConversation } from './collect/conversation.ts';
 import { findTranscript } from './collect/transcript.ts';
 import { LiveUsage, TranscriptScanner } from './collect/usage.ts';
 import { collectSnapshot, pathsFor } from './state.ts';
+import { resumeInTerminal, showTerminal } from './terminal.ts';
 import type { RouterSummary, Snapshot } from './types.ts';
 
 // Ported from Claude Office's server/api.ts: same snapshot, stream and conversation rules, on Hono.
@@ -133,6 +135,33 @@ export function sessionRoutes(app: Hono): void {
     } catch {
       return c.json({ error: 'The conversation could not be read.' }, 500);
     }
+  });
+
+  app.post('/api/sessions/terminal', async (c) => {
+    // A live terminal session: bring its window forward. An ended one: resume it in a new Terminal window.
+    // A live VS Code or desktop session is not resumed here, which would run two copies of it.
+    const body = (await c.req.json().catch(() => ({}))) as { session?: unknown };
+    const id = typeof body.session === 'string' ? body.session : '';
+    const live = snapshot?.tables.flatMap((t) => t.agents).find((a) => a.sessionId === id);
+    const past = live ? undefined : snapshot?.history.find((h) => h.sessionId === id);
+    try {
+      if (live) {
+        if (live.app !== 'terminal') {
+          return c.json({ error: 'That session is running in another app. Reply there; resuming it in a terminal would run two copies.' }, 409);
+        }
+        const opened = await showTerminal(live.pid);
+        if (opened) return c.json({ opened });
+        return c.json({ error: 'Could not find its terminal window. Only Terminal and iTerm2 are supported.' }, 404);
+      }
+      if (past) {
+        if (!fs.existsSync(past.cwd) || !fs.statSync(past.cwd).isDirectory()) return c.json({ error: 'The session folder no longer exists.' }, 404);
+        await resumeInTerminal(past.cwd, id);
+        return c.json({ opened: 'Terminal', resumed: true });
+      }
+    } catch (e) {
+      return c.json({ error: (e as Error).message }, 500);
+    }
+    return c.json({ error: 'That session is not on the board or in its recent history.' }, 404);
   });
 
   app.post('/api/sessions/usage/check', (c) => {

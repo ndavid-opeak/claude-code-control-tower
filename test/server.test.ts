@@ -192,3 +192,14 @@ describe("sessions link", () => {
     expect(ok.config.sessions.pollMs).toBe(1000);
   });
 });
+
+describe("POST /api/sessions/terminal", () => {
+  it("refuses a session that is not on the board", async () => {
+    const res = await app.request("/api/sessions/terminal", { method: "POST", headers: json, body: JSON.stringify({ session: "nope" }) });
+    expect(res.status).toBe(404);
+  });
+  it("needs JSON", async () => {
+    const res = await app.request("/api/sessions/terminal", { method: "POST", body: "session=x" });
+    expect(res.status).toBe(415);
+  });
+});

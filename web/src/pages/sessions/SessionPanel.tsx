@@ -9,7 +9,7 @@ import type { Session } from "@/lib/sessions/sessions";
 import { useNow } from "@/lib/sessions/useSnapshot";
 import { cn } from "@/lib/utils";
 import { Conversation } from "./Conversation";
-import { OpenLink, PrLinks, ProjectLabel, Rich } from "./bits";
+import { OpenLink, PrLinks, ProjectLabel, Rich, TerminalButton } from "./bits";
 
 export type PanelView = "overview" | "conversation" | "router";
 
@@ -61,7 +61,8 @@ export function SessionPanel({ session, view, onView, onClose }: { session: Sess
         <h2 className="text-base leading-snug font-semibold">{agent.name}</h2>
         <ProjectLabel project={project} inProject={inProject} branch={agent.branch} />
         <div className="flex flex-wrap items-center gap-1.5">
-          <OpenLink agent={agent} strong={agent.state === "waiting" && !session.ended} />
+          <OpenLink agent={agent} strong={agent.state === "waiting" && !session.ended} ended={session.ended} />
+          {session.ended && <TerminalButton agent={agent} ended />}
           <PrLinks prs={agent.prs} max={4} />
         </div>
       </header>
