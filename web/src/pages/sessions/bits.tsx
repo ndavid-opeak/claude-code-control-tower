@@ -2,7 +2,7 @@ import { CircleAlert, ExternalLink, GitPullRequest, OctagonAlert, SquareTerminal
 import { useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import type { ContextLevel, MainAgent, PullRequest, RouterSummary } from "@server/sessions/types.ts";
-import { Badge, Input } from "@/components/ui";
+import { Badge, Input, Tip } from "@/components/ui";
 import { api } from "@/lib/api";
 import { allowAlerts } from "@/lib/sessions/alerts";
 import { APP_NAME, withoutLinks } from "@/lib/sessions/format";
@@ -35,18 +35,20 @@ export const CONTEXT_LEVEL_TEXT: Record<ContextLevel, string> = {
   danger: "Context is too long: expect forgotten details and mistakes. Run /compact or start a fresh session now.",
 };
 
-/** "!" once the context passes the warning size, a stop sign past the danger size. */
+/** "!" once the context passes the warning size, a stop sign past the danger size; hovering explains it. */
 export function ContextMark({ level, className }: { level?: ContextLevel; className?: string }) {
   if (!level) return null;
   const Icon = level === "danger" ? OctagonAlert : CircleAlert;
   return (
-    <Icon
-      role="img"
-      aria-label={level === "danger" ? "Context too long" : "Context getting long"}
-      className={cn("size-3.5 shrink-0", level === "danger" ? "text-destructive" : "text-warning", className)}
-    >
-      <title>{CONTEXT_LEVEL_TEXT[level]}</title>
-    </Icon>
+    <Tip text={CONTEXT_LEVEL_TEXT[level]}>
+      <span
+        role="img"
+        aria-label={`${level === "danger" ? "Context too long" : "Context getting long"}. ${CONTEXT_LEVEL_TEXT[level]}`}
+        className="inline-flex"
+      >
+        <Icon className={cn("size-3.5 shrink-0", level === "danger" ? "text-destructive" : "text-warning", className)} />
+      </span>
+    </Tip>
   );
 }
 

@@ -1,11 +1,12 @@
 import { ChevronRight } from "lucide-react";
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { Badge } from "@/components/ui";
 import { activityText, contextFraction, duration, lineOf, nearCompact, QUIET_MS } from "@/lib/sessions/format";
+import { FlaggedEventIds } from "@/lib/sessions/flagEvents";
 import { COLUMNS, inColumn, type Session } from "@/lib/sessions/sessions";
 import { useNow } from "@/lib/sessions/useSnapshot";
 import { cn } from "@/lib/utils";
-import { CONTEXT_LEVEL_TEXT, ContextMark, ContextRing, FlagButton, OpenLink, PrLinks, ProjectLabel, RouterBadge } from "./bits";
+import { ContextMark, ContextRing, FlagButton, OpenLink, PrLinks, ProjectLabel, RouterBadge } from "./bits";
 
 interface Props {
   sessions: Session[];
@@ -63,6 +64,7 @@ export function Board({ sessions, history, openId, onOpen }: Props) {
 
 /** One session: its title, where it runs, what it says or is doing, and how long, how full, how many helpers. */
 function Card({ session: { agent, project, inProject }, now, open, onOpen }: { session: Session; now: number; open: boolean; onOpen: Props["onOpen"] }) {
+  const hasEvent = useContext(FlaggedEventIds).has(agent.sessionId);
   const helpers = agent.subagents.filter((s) => s.state !== "finished").length;
   let says: string;
   let when: string;
@@ -91,6 +93,7 @@ function Card({ session: { agent, project, inProject }, now, open, onOpen }: { s
         "group relative overflow-hidden rounded-xl border bg-card shadow-xs transition-shadow before:absolute before:inset-y-0 before:left-0 before:w-[3px] hover:shadow-md",
         accent,
         open && "ring-2 ring-primary/50",
+        hasEvent && !open && "ring-2 ring-warning/70 shadow-[0_0_0_6px] shadow-warning/15",
       )}
     >
       <button type="button" aria-pressed={open} onClick={() => onOpen(agent.sessionId)} className="grid w-full min-w-0 gap-1.5 px-4 pt-3 pb-2 text-left">
@@ -107,7 +110,7 @@ function Card({ session: { agent, project, inProject }, now, open, onOpen }: { s
                 agent.contextLevel === "danger" && "font-medium text-destructive",
                 agent.contextLevel === "warn" && "text-warning",
               )}
-              title={agent.contextLevel ? CONTEXT_LEVEL_TEXT[agent.contextLevel] : "How full the context window is"}
+              title={agent.contextLevel ? undefined : "How full the context window is"}
             >
               <ContextRing fraction={fraction} level={agent.contextLevel} />
               {Math.round(fraction * 100)}%

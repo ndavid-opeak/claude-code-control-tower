@@ -1,7 +1,7 @@
 // Small shadcn-style primitives (hand-written; Radix only for Dialog and Switch).
 import { cva, type VariantProps } from "class-variance-authority";
 import { X } from "lucide-react";
-import { Dialog as D, Switch as S } from "radix-ui";
+import { Dialog as D, Switch as S, Tooltip as T } from "radix-ui";
 import type * as React from "react";
 import { cn } from "@/lib/utils";
 
@@ -81,7 +81,7 @@ export function Select({ className, ...props }: React.ComponentProps<"select">) 
 
 export function Field({ label, hint, children }: { label: string; hint?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <label className="grid gap-1.5">
+    <label className="grid content-start gap-1.5">
       <span className="text-[13px] font-medium">{label}</span>
       {children}
       {hint && <span className="text-xs text-muted-foreground">{hint}</span>}
@@ -154,4 +154,30 @@ export function statusVariant(status: number): "success" | "warning" | "destruct
   if (status >= 200 && status < 300) return "success";
   if (status === 429 || status === 0) return "warning";
   return "destructive";
+}
+
+/** Wraps the app once so every Tip shares one hover delay. */
+export const TipProvider = ({ children }: { children: React.ReactNode }) => (
+  <T.Provider delayDuration={150} skipDelayDuration={300}>
+    {children}
+  </T.Provider>
+);
+
+/** A short hover note that shows quickly and is never clipped by its container. */
+export function Tip({ text, children, side = "top" }: { text: React.ReactNode; children: React.ReactElement; side?: "top" | "bottom" | "left" | "right" }) {
+  return (
+    <T.Root>
+      <T.Trigger asChild>{children}</T.Trigger>
+      <T.Portal>
+        <T.Content
+          side={side}
+          sideOffset={6}
+          collisionPadding={8}
+          className="z-50 max-w-72 rounded-md border bg-card-solid px-2.5 py-1.5 text-xs leading-snug text-foreground shadow-lg"
+        >
+          {text}
+        </T.Content>
+      </T.Portal>
+    </T.Root>
+  );
 }

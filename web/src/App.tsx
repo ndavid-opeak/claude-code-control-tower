@@ -2,11 +2,13 @@ import { Activity, Gauge, LayoutGrid, Route, Server, Settings as SettingsIcon, W
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Toaster } from "sonner";
 import { DefaultPicker } from "@/components/DefaultProvider";
-import { NowServing } from "@/components/NowServing";
+import { FallbackNote, useServing } from "@/components/NowServing";
 import { ThemeSwitch, useTheme } from "@/components/ThemeSwitch";
-import { Badge } from "@/components/ui";
+import { Badge, TipProvider } from "@/components/ui";
 import { useAppState } from "@/lib/hooks";
 import { useWaitingAlerts } from "@/lib/sessions/alerts";
+import { FlaggedEventIds, useFlagEvents } from "@/lib/sessions/flagEvents";
+import { FlagEventCards } from "@/components/FlagEventCards";
 import { historyOf, sessionsOf } from "@/lib/sessions/sessions";
 import { useSnapshot } from "@/lib/sessions/useSnapshot";
 import { cn } from "@/lib/utils";
@@ -36,6 +38,7 @@ function pageFromHash(): PageId {
 
 export function App() {
   const app = useAppState();
+  const serving = useServing(app.state?.config);
   const [page, setPage] = useState<PageId>(pageFromHash);
   const [theme, setTheme] = useTheme();
   useEffect(() => {
@@ -55,6 +58,13 @@ export function App() {
     location.hash = "sessions";
   }, []);
   const alerts = useWaitingAlerts(snapshot ? sessions : null, openSession);
+  const flagEvents = useFlagEvents(snapshot ? sessions : null);
+  const flaggedIds = useMemo(() => new Set(flagEvents.events.map((e) => e.sessionId)), [flagEvents.events]);
+  // Opening a session counts as seeing its card.
+  const { dismiss: dismissFlagEvent } = flagEvents;
+  useEffect(() => {
+    if (openId) dismissFlagEvent(openId);
+  }, [openId, dismissFlagEvent]);
   const waiting = sessions.filter((s) => s.agent.state === "waiting").length;
   useEffect(() => {
     document.title = waiting ? `(${waiting}) claude-router` : "claude-router";
@@ -63,6 +73,8 @@ export function App() {
   const current = PAGES.find((p) => p.id === page)!;
 
   return (
+    <TipProvider>
+    <FlaggedEventIds.Provider value={flaggedIds}>
     <div className="flex min-h-screen flex-col md:flex-row">
       <aside className="z-30 flex flex-col border-b bg-card md:sticky md:top-0 md:h-screen md:w-56 md:shrink-0 md:border-r md:border-b-0">
         <div className="flex items-center gap-2 px-4 py-4 md:px-5 md:py-5">
@@ -99,8 +111,8 @@ export function App() {
           <h1 className="text-lg font-semibold tracking-tight">{current.label}</h1>
           {app.state && (
             <div className="flex items-center gap-3">
-              <NowServing config={app.state.config} />
-              <DefaultPicker app={app} />
+              <FallbackNote config={app.state.config} serving={serving} />
+              <DefaultPicker app={app} serving={serving} />
             </div>
           )}
         </header>
@@ -126,7 +138,10 @@ export function App() {
           </div>
         )}
       </main>
+      <FlagEventCards events={flagEvents.events} onOpen={openSession} onDismiss={flagEvents.dismiss} onDismissAll={flagEvents.dismissAll} />
       <Toaster position="bottom-right" richColors closeButton theme={theme} />
     </div>
+    </FlaggedEventIds.Provider>
+    </TipProvider>
   );
 }

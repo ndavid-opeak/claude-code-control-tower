@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { TONE } from "@/components/NowServing";
-import { Button, Dialog, Field, Input } from "@/components/ui";
+import { TONE, type Serving } from "@/components/NowServing";
+import { Button, Dialog, Field, Input, Tip } from "@/components/ui";
 import { providerName, type Family } from "@/lib/api";
 import { defaultProviderOf, familiesMissing, makeDefault } from "@/lib/defaultProvider";
 import { useLogs, type AppState } from "@/lib/hooks";
@@ -115,35 +115,57 @@ export function useMakeDefault(app: AppState) {
 }
 
 /** Header control: one click picks the provider that answers Claude Code first. */
-export function DefaultPicker({ app }: { app: AppState }) {
+export function DefaultPicker({ app, serving }: { app: AppState; serving?: Serving }) {
   const { config } = app.state!;
   const { request, dialog } = useMakeDefault(app);
   const current = defaultProviderOf(config);
 
   return (
     <>
-      <div
-        role="radiogroup"
-        aria-label="Main provider"
-        title={current ? undefined : "Model families start with different providers; see Routing"}
-        className="inline-flex rounded-lg border bg-muted p-0.5 text-[13px]"
-      >
-        {config.providers.map((p) => (
-          <button
-            key={p.id}
-            role="radio"
-            aria-checked={current === p.id}
-            onClick={() => current !== p.id && request(p.id)}
-            title={p.type === "anthropic" ? "Pass-through to Anthropic" : undefined}
-            className={cn(
-              "flex items-center gap-1.5 rounded-md px-3 py-1 font-medium text-muted-foreground transition-colors hover:text-foreground",
-              current === p.id && "bg-card text-foreground shadow-xs",
-            )}
-          >
-            <span className={cn("size-2 rounded-full", TONE[p.type === "gemini" ? "gemini" : "anthropic"].dot, current !== p.id && "opacity-40")} />
-            {providerName(p)}
-          </button>
-        ))}
+      <div className="flex items-center gap-2">
+        <span id="provider-label" className="hidden text-[13px] text-muted-foreground md:inline">
+          Provider
+        </span>
+        <div
+          role="radiogroup"
+          aria-labelledby="provider-label"
+          aria-label="Provider"
+          className="inline-flex rounded-lg border bg-muted p-0.5 text-[13px]"
+        >
+          {config.providers.map((p) => {
+            const live = serving?.liveId === p.id;
+            const tone = TONE[p.type === "gemini" ? "gemini" : "anthropic"];
+            return (
+              <Tip
+                key={p.id}
+                side="bottom"
+                text={
+                  current === p.id
+                    ? `Claude Code's requests go to ${providerName(p)} first${live ? ". It answered in the last 90 seconds." : "."}`
+                    : current
+                      ? `Send Claude Code's requests to ${providerName(p)} first instead`
+                      : "Model families start with different providers; see Routing"
+                }
+              >
+                <button
+                  role="radio"
+                  aria-checked={current === p.id}
+                  onClick={() => current !== p.id && request(p.id)}
+                  className={cn(
+                    "flex items-center gap-1.5 rounded-md px-3 py-1 font-medium text-muted-foreground transition-colors hover:text-foreground",
+                    current === p.id && "bg-card text-foreground shadow-xs",
+                  )}
+                >
+                  <span className="relative flex size-2">
+                    {live && <span className={cn("absolute inline-flex size-full animate-ping rounded-full opacity-75 motion-reduce:hidden", tone.dot)} />}
+                    <span className={cn("relative inline-flex size-2 rounded-full", tone.dot, current !== p.id && !live && "opacity-40")} />
+                  </span>
+                  {providerName(p)}
+                </button>
+              </Tip>
+            );
+          })}
+        </div>
       </div>
       {dialog}
     </>
