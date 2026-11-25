@@ -11,8 +11,9 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-// A short folder, because paths show up on the pages (and in screenshots).
-const ROOT = process.platform === "win32" ? path.join(os.tmpdir(), "cct-demo") : "/tmp/cct-demo";
+// A new, private folder each run (mkdtemp makes it atomically, readable only by you). It sits in /tmp rather than the
+// longer macOS temp folder because paths show up on the pages and in screenshots. It is removed when the demo stops.
+const ROOT = fs.mkdtempSync(path.join(process.platform === "win32" ? os.tmpdir() : "/tmp", "cct-demo-"));
 const HOME = path.join(ROOT, "alex");
 const WORK = path.join(HOME, "work");
 const CLAUDE = path.join(HOME, ".claude");
@@ -418,7 +419,8 @@ function mockProviders(): void {
   const realFetch = globalThis.fetch;
   globalThis.fetch = async (input: string | URL | Request, init?: RequestInit) => {
     const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
-    if (url.includes("googleapis.com")) {
+    const host = new URL(url).hostname;
+    if (host === "googleapis.com" || host.endsWith(".googleapis.com")) {
       await sleep(300 + Math.random() * 900);
       // A 404 is specific to the request, so the router moves to the next target without cooling the key down.
       if (++geminiCalls === 4) return Response.json({ error: { code: 404, message: "Publisher model was not found (demo)", status: "NOT_FOUND" } }, { status: 404 });
@@ -429,7 +431,7 @@ function mockProviders(): void {
       if (url.includes("alt=sse")) return new Response(`data: ${JSON.stringify(body)}\n\n`, { headers: { "content-type": "text/event-stream" } });
       return Response.json(body);
     }
-    if (url.startsWith("https://api.anthropic.com")) {
+    if (host === "api.anthropic.com") {
       await sleep(400 + Math.random() * 800);
       if (url.includes("/v1/models")) return Response.json({ data: [] });
       const req = JSON.parse(String(init?.body ?? "{}"));
@@ -476,7 +478,12 @@ async function trafficThroughRouter(): Promise<void> {
 
 // ---- Start ---------------------------------------------------------------------
 
-fs.rmSync(ROOT, { recursive: true, force: true });
+for (const signal of ["SIGINT", "SIGTERM"] as const) {
+  process.on(signal, () => {
+    fs.rmSync(ROOT, { recursive: true, force: true });
+    process.exit(0);
+  });
+}
 buildSessions();
 buildSetup();
 buildRouter();
