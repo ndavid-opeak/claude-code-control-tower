@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { frontmatter, listPlugins, listSkills, pluginMcpServers } from '../../src/analyzer/setup.ts';
+import { frontmatter, listPlugins, listSkills, listSyncedSkills, pluginMcpServers } from '../../src/analyzer/setup.ts';
 
 let tmp: string;
 let home: string; // fake ~/.claude
@@ -68,6 +68,20 @@ describe('listSkills', () => {
     expect(listSkills(home)).toEqual([
       { name: 'changelog-writer', qualifiedName: 'changelog-writer', description: 'Write a changelog', file: path.join(home, 'skills', 'changelog-writer', 'SKILL.md'), source: 'user' },
       { name: 'block-kit', qualifiedName: 'slack:block-kit', description: "Build Block Kit, it's quoted", file: path.join(slack, 'skills', 'block-kit', 'SKILL.md'), source: 'slack@dir' },
+    ]);
+  });
+});
+
+describe('listSyncedSkills', () => {
+  it('lists skills synced from claude.ai once, even when several buckets hold them', () => {
+    for (const bucket of ['b1', 'b2']) {
+      const dir = path.join(home, 'skills', 'synced', bucket, 'pdf');
+      fs.mkdirSync(dir, { recursive: true });
+      fs.writeFileSync(path.join(dir, 'SKILL.md'), '---\nname: pdf\ndescription: Do PDFs\n---\n');
+    }
+    fs.mkdirSync(path.join(home, 'skills', 'synced', '.bucket-b1'), { recursive: true });
+    expect(listSyncedSkills(home)).toEqual([
+      { name: 'pdf', qualifiedName: 'anthropic-skills:pdf', description: 'Do PDFs', file: path.join(home, 'skills', 'synced', 'b1', 'pdf', 'SKILL.md'), source: 'anthropic-skills' },
     ]);
   });
 });

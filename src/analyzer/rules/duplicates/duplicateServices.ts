@@ -64,13 +64,17 @@ function sourcesOf(claudeHome: string, claudeJsonPath: string): Source[] {
 
   for (const p of listPlugins(claudeHome)) {
     if (!p.enabled) continue;
+    // Transcripts name servers after the manifest's name, which can differ from the install id's.
+    const manifestName = readJson(path.join(p.installPath, '.claude-plugin', 'plugin.json'))?.name;
     for (const s of pluginMcpServers(p)) {
+      const tools = new Set(toolsFor(`plugin_${p.name}_${s.name}`));
+      if (typeof manifestName === 'string') for (const t of toolsFor(`plugin_${manifestName}_${s.name}`)) tools.add(t);
       sources.push({
         kind: 'plugin',
         label: `plugin ${p.id} (server "${s.name}")`,
         name: s.name.toLowerCase(),
         target: s.target,
-        tools: toolsFor(`plugin_${p.name}_${s.name}`),
+        tools,
       });
     }
   }

@@ -49,7 +49,11 @@ function transcript(tools: string[], name = 's1') {
   );
 }
 
-const UUID = '5d7c5b19-e1d6-4c5d-891d-4d03d9908452';
+function syncSkill(name: string, bucket = 'b1') {
+  write(path.join(home, 'skills', 'synced', bucket, name, 'SKILL.md'), `---\nname: ${name}\ndescription: d\n---\n`);
+}
+
+const UUID ='5d7c5b19-e1d6-4c5d-891d-4d03d9908452';
 const OTHER = '11111111-2222-3333-4444-555555555555';
 
 describe('no duplicates', () => {
@@ -73,6 +77,27 @@ describe('skill name from two sources', () => {
     expect(f.detail).toContain('anthropic-skills@m');
     expect(f.fix).toMatch(/keep/i);
     expect(f.fix).toMatch(/remove/i);
+  });
+});
+
+describe('skills synced from claude.ai', () => {
+  it('flags a user skill that has a synced twin', () => {
+    syncSkill('changelog-writer');
+    syncSkill('changelog-writer', 'b2');
+    write(path.join(home, 'skills', 'changelog-writer', 'SKILL.md'), '---\nname: changelog-writer\ndescription: d\n---\n');
+    const [f, ...rest] = dupes();
+    expect(rest).toEqual([]);
+    expect(f.detail).toContain('anthropic-skills');
+  });
+
+  it('flags a plugin that overlaps the synced skills', () => {
+    installPlugins({ 'skill-creator@m': { skills: ['skill-creator'] } });
+    syncSkill('skill-creator');
+    syncSkill('pdf');
+    const [f, ...rest] = dupes();
+    expect(rest).toEqual([]);
+    expect(f.detail).toContain('anthropic-skills');
+    expect(f.detail).toContain('skill-creator@m');
   });
 });
 
@@ -125,6 +150,18 @@ describe('same service connected twice', () => {
   it('does not flag connectors for different services', () => {
     transcript([`mcp__${UUID}__slack_send_message`, `mcp__${OTHER}__createJiraIssue`]);
     expect(dupes()).toEqual([]);
+  });
+});
+
+describe('plugin whose manifest name differs from its install id', () => {
+  it('matches its transcript tools to a connector', () => {
+    installPlugins({ 'atlassian-mcp@m': { mcp: { atlassian: { type: 'http', url: 'https://mcp.atlassian.com/v2/mcp' } } } });
+    write(path.join(home, 'plugins', 'cache', 'atlassian-mcp-m', '1.0.0', '.claude-plugin', 'plugin.json'), JSON.stringify({ name: 'atlassian' }));
+    transcript(['mcp__plugin_atlassian_atlassian__getJiraIssue', `mcp__${UUID}__getJiraIssue`]);
+    const [f, ...rest] = dupes();
+    expect(rest).toEqual([]);
+    expect(f.detail).toContain('atlassian-mcp@m');
+    expect(f.detail).toContain(`claude.ai connector ${UUID}`);
   });
 });
 

@@ -98,6 +98,30 @@ function skillsIn(dir: string): { name: string; description: string; file: strin
   return out;
 }
 
+/** Prefix of skills synced from claude.ai, as Claude Code lists them ("anthropic-skills:pdf"). */
+export const SYNCED_SKILLS_ID = 'anthropic-skills';
+
+/**
+ * Skills synced from claude.ai into ~/.claude/skills/synced/<bucket>/<skill>. Each bucket (one per
+ * account/organization) can hold the same skills, so a name appears once.
+ */
+export function listSyncedSkills(claudeHome: string): Skill[] {
+  const root = path.join(claudeHome, 'skills', 'synced');
+  let buckets: string[] = [];
+  try {
+    buckets = fs.readdirSync(root).filter((b) => !b.startsWith('.')).sort();
+  } catch {
+    return [];
+  }
+  const out = new Map<string, Skill>();
+  for (const b of buckets) {
+    for (const s of skillsIn(path.join(root, b))) {
+      if (!out.has(s.name)) out.set(s.name, { ...s, qualifiedName: `${SYNCED_SKILLS_ID}:${s.name}`, source: SYNCED_SKILLS_ID });
+    }
+  }
+  return [...out.values()];
+}
+
 /** Top-level `key: value` pairs of a Markdown file's YAML frontmatter, enough for name and description. */
 export function frontmatter(text: string): Record<string, string> {
   const m = /^---\r?\n([\s\S]*?)\r?\n---/.exec(text);

@@ -1,10 +1,10 @@
-import { listSkills } from '../../setup.ts';
+import { listSkills, listSyncedSkills } from '../../setup.ts';
 import type { Rule, RuleFinding } from '../types.ts';
 
 /** A user skill whose name is also used by a plugin skill (plugin-vs-plugin overlap is in pluginOverlap). */
 export const duplicateSkillNames: Rule = ({ claudeHome }) => {
   const byName = new Map<string, ReturnType<typeof listSkills>>();
-  for (const s of listSkills(claudeHome)) byName.set(s.name, [...(byName.get(s.name) ?? []), s]);
+  for (const s of [...listSkills(claudeHome), ...listSyncedSkills(claudeHome)]) byName.set(s.name, [...(byName.get(s.name) ?? []), s]);
   const findings: RuleFinding[] = [];
   for (const [name, skills] of byName) {
     const user = skills.find((s) => s.source === 'user');
