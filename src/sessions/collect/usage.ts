@@ -132,7 +132,7 @@ export class LiveUsage {
     } catch (e) {
       const missing = claudeNotFound(e, (e as { stderr?: string }).stderr);
       this.problem = missing
-        ? 'The claude command was not found. Start Claude Office from a terminal where "claude" works.'
+        ? 'The claude command was not found. Start claude-code-control-tower from a terminal where "claude" works.'
         : 'The usage check did not finish. It will be tried again.';
     } finally {
       this.checking = false;
