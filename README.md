@@ -108,13 +108,25 @@ With **Anthropic** as the main provider the router behaves like Anthropic's API,
 
 Because Claude Code depends on the router once it points here, run the router so it starts on login and restarts itself if it crashes. On a Mac that is a launchd LaunchAgent with `RunAtLoad` (start at login) and `KeepAlive` (relaunch whenever the process exits).
 
-The easiest way is to ask Claude Code in this folder:
+Install the template in `launchd/com.claude-router.plist` (run from the repo folder, after `npm install`):
 
-> Set up claude-router to launch automatically when I log in and to restart itself if it stops or crashes. Use a launchd LaunchAgent with absolute paths to node and this repo, log to `~/Library/Logs`, then verify it is running on port 3456.
+```bash
+mkdir -p ~/.claude-router ~/Library/LaunchAgents
+sed -e "s|__NODE__|$(command -v node)|g" -e "s|__REPO__|$PWD|g" -e "s|__HOME__|$HOME|g" \
+  launchd/com.claude-router.plist > ~/Library/LaunchAgents/com.claude-router.plist
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.claude-router.plist
+```
+
+Check it: `curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:3456/` should print `200`. To see the restart work, run `launchctl kickstart -k gui/$(id -u)/com.claude-router` and check again after a few seconds. Logs go to `~/.claude-router/router.log`.
+
+Or ask Claude Code in this folder to do it for you:
+
+> Set up claude-router to launch automatically when I log in and to restart itself if it stops or crashes, using the template in `launchd/`. Then verify it is running on port 3456.
 
 Things to know:
 
-- launchd does not use your shell's `PATH`, so the agent needs the absolute path to `node` (`which node`) and to this repo.
+- launchd does not use your shell's `PATH`, so the template takes absolute paths to `node` and to this repo (the `sed` line fills them in). It also puts `claude` on the agent's `PATH` for the Sessions usage check; edit that line if `claude` lives elsewhere.
+- While the agent is loaded it owns port 3456, so `npm start` fails with "address already in use". After a code change or `npm run build`, restart it with the `kickstart` command above.
 - After a restart the request log and captured bodies are empty (they live in memory only); providers, routes and keys are kept.
 - To stop it for good, unload the agent (`launchctl bootout gui/$(id -u)/<label>`) and delete its plist; otherwise `KeepAlive` brings it straight back.
 - If the router still cannot start, Claude Code stays blocked until you fix it or remove `ANTHROPIC_BASE_URL`.
@@ -220,5 +232,6 @@ npm run build      # dashboard into dist/web
 | `src/router/` | route resolution, fallback and cooldowns |
 | `src/providers/` | Anthropic pass-through; Gemini translation (`gemini/`) |
 | `src/sessions/` | session readers and their API (from Claude Office) |
+| `launchd/` | macOS LaunchAgent template that starts the router at login and restarts it |
 | `web/` | dashboard (React, Tailwind) |
 | `test/` | tests |

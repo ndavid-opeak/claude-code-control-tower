@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Template: starts claude-router at login and restarts it if it stops.
+     Fill in __NODE__, __REPO__ and __HOME__ (see "Start it automatically" in the README).
+     Remove with: launchctl bootout gui/$(id -u)/com.claude-router && rm ~/Library/LaunchAgents/com.claude-router.plist -->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.claude-router</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>__NODE__</string>
+    <string>__REPO__/node_modules/tsx/dist/cli.mjs</string>
+    <string>src/server.ts</string>
+  </array>
+  <key>WorkingDirectory</key>
+  <string>__REPO__</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <!-- claude must be on PATH for the Sessions page's usage check -->
+    <key>PATH</key>
+    <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:__HOME__/.local/bin</string>
+  </dict>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+  <key>ThrottleInterval</key>
+  <integer>10</integer>
+  <key>StandardOutPath</key>
+  <string>__HOME__/.claude-router/router.log</string>
+  <key>StandardErrorPath</key>
+  <string>__HOME__/.claude-router/router.log</string>
+</dict>
+</plist>
