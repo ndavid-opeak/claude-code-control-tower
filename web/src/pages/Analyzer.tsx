@@ -6,10 +6,12 @@ import { Button, Card, CardContent } from "@/components/ui";
 import { api } from "@/lib/api";
 import { CategoryCards, ScoreHeader } from "@/pages/analyzer/Scores";
 import { Findings } from "@/pages/analyzer/Findings";
+import { ReviewButton, ReviewPanel } from "@/pages/analyzer/Review";
 
 export function Analyzer() {
   const [report, setReport] = useState<Report | null | undefined>(undefined);
   const [running, setRunning] = useState(false);
+  const [reviewError, setReviewError] = useState<string>();
 
   useEffect(() => {
     api.analyzerReport().then(setReport, (err) => {
@@ -22,6 +24,7 @@ export function Analyzer() {
     setRunning(true);
     try {
       setReport(await api.runAnalyzer(report?.window));
+      setReviewError(undefined);
     } catch (err) {
       toast.error(`Analysis failed: ${(err as Error).message}`);
     } finally {
@@ -50,7 +53,16 @@ export function Analyzer() {
   }
   return (
     <div className="grid gap-4">
-      <ScoreHeader report={report} actions={runButton} />
+      <ScoreHeader
+        report={report}
+        actions={
+          <>
+            <ReviewButton onReport={setReport} onError={setReviewError} />
+            {runButton}
+          </>
+        }
+      />
+      <ReviewPanel report={report} error={reviewError} />
       <CategoryCards report={report} />
       <Findings findings={report.findings} />
     </div>

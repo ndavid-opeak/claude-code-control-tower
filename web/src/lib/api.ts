@@ -95,6 +95,8 @@ export const api = {
   openTerminal: (session: string) => call<{ opened: string; resumed?: boolean }>("POST", "/api/sessions/terminal", { session }),
   analyzerReport: () => call<Report | null>("GET", "/api/analyzer/report"),
   runAnalyzer: (window?: Window) => call<Report>("POST", "/api/analyzer/run", { window }),
+  estimateReview: () => call<{ tokens: number }>("POST", "/api/analyzer/review/estimate", {}),
+  reviewAnalyzer: () => call<Report>("POST", "/api/analyzer/review", {}),
 };
 
 export function providerName(p: Provider): string {
