@@ -1,6 +1,7 @@
 import { execFile } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
+import { claudeInvocation, claudeNotFound } from '../claudeCommand.ts';
 import { ANALYZER_REVIEW_DIR } from '../config.ts';
 import type { Report } from './types.ts';
 
@@ -103,12 +104,13 @@ export function parseOutput(stdout: string): string {
 /** The real thing: the prompt goes in on stdin. Your Claude login is used by the claude command itself. */
 export const runClaude: ReviewRunner = ({ prompt, cwd }) =>
   new Promise((resolve, reject) => {
+    const claude = claudeInvocation(claudeArgs());
     const child = execFile(
-      'claude',
-      claudeArgs(),
-      { cwd, timeout: 5 * 60_000, maxBuffer: 8 * 1024 * 1024, env: reviewEnv(process.env) },
-      (err, stdout) => {
-        if ((err as NodeJS.ErrnoException | null)?.code === 'ENOENT') return reject(new Error('The claude command was not found. Start Claude Router from a terminal where "claude" works.'));
+      claude.file,
+      claude.args,
+      { cwd, shell: claude.shell, timeout: 5 * 60_000, maxBuffer: 8 * 1024 * 1024, env: reviewEnv(process.env) },
+      (err, stdout, stderr) => {
+        if (claudeNotFound(err, stderr)) return reject(new Error('The claude command was not found. Start Claude Router from a terminal where "claude" works.'));
         try {
           resolve(parseOutput(stdout));
         } catch (parseErr) {

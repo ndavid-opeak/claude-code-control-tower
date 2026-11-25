@@ -14,7 +14,7 @@ export function sessionsOf(snapshot: Snapshot): Session[] {
     t.agents.map((agent) => ({
       agent,
       // A session outside the projects folder is named after the folder it runs in.
-      project: t.id === 'elsewhere' ? (agent.cwd.split('/').filter(Boolean).at(-1) ?? t.name) : t.name,
+      project: t.id === 'elsewhere' ? (agent.cwd.split(/[\\/]/).filter(Boolean).at(-1) ?? t.name) : t.name,
       inProject: t.id !== 'elsewhere',
     })),
   );

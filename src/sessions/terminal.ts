@@ -1,4 +1,6 @@
-import { execFile } from 'node:child_process';
+import { execFile, spawn } from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
 import { promisify } from 'node:util';
 
 const run = promisify(execFile);
@@ -90,9 +92,12 @@ async function isRunning(app: TerminalApp): Promise<boolean> {
   }
 }
 
+/** Only macOS can find and focus the window a running session is in (via AppleScript). */
+export const canFocusTerminal = (platform: NodeJS.Platform = process.platform) => platform === 'darwin';
+
 /** Brings the terminal window running process `pid` to the front. Returns the app, or null when no Terminal or iTerm2 tab has it. */
 export async function showTerminal(pid: number): Promise<TerminalApp | null> {
-  if (!Number.isInteger(pid) || pid <= 0) return null;
+  if (!canFocusTerminal() || !Number.isInteger(pid) || pid <= 0) return null;
   let tty = '';
   try {
     tty = (await run('ps', ['-o', 'tty=', '-p', String(pid)])).stdout.trim();
@@ -106,7 +111,74 @@ export async function showTerminal(pid: number): Promise<TerminalApp | null> {
   return null;
 }
 
-/** Opens a new Terminal window that resumes an ended session in its own folder. */
-export async function resumeInTerminal(cwd: string, sessionId: string): Promise<void> {
-  await osascript(resumeScript(cwd, sessionId));
+/** A new terminal window to start, outside macOS. It runs with the session's folder as its working directory. */
+export interface ResumeLaunch {
+  app: string;
+  file: string;
+  args: string[];
+}
+
+/** Terminals tried on Linux when $TERMINAL is not set, most generic first. */
+const LINUX_TERMINALS = ['x-terminal-emulator', 'gnome-terminal', 'konsole', 'xfce4-terminal', 'kitty', 'alacritty', 'xterm'];
+
+/**
+ * How to open a terminal that resumes `sessionId` on Windows or Linux. `has` says whether a command is on PATH.
+ * Returns null when no terminal can be found.
+ */
+export function resumeLaunch(
+  platform: NodeJS.Platform,
+  cwd: string,
+  sessionId: string,
+  has: (command: string) => boolean,
+  env: NodeJS.ProcessEnv = process.env,
+): ResumeLaunch | null {
+  if (!SESSION_ID.test(sessionId)) throw new Error('Bad session id.');
+  if (platform === 'win32') {
+    // cmd /k keeps the window open after claude exits, and runs the claude.cmd shim that an npm install creates.
+    // Windows Terminal reads ";" as a command separator, so a folder with one falls back to cmd.
+    if (has('wt') && !cwd.includes(';')) return { app: 'Windows Terminal', file: 'wt.exe', args: ['-d', cwd, 'cmd', '/k', 'claude', '--resume', sessionId] };
+    return { app: 'Command Prompt', file: 'cmd.exe', args: ['/c', 'start', '""', 'cmd', '/k', 'claude', '--resume', sessionId] };
+  }
+  const terminal = env.TERMINAL?.trim() || LINUX_TERMINALS.find(has);
+  if (!terminal) return null;
+  // Keep a shell open after claude exits, like the macOS Terminal window does.
+  const command = ['sh', '-c', `claude --resume ${sessionId}; exec "\${SHELL:-sh}"`];
+  const name = path.basename(terminal);
+  const flag = name === 'gnome-terminal' ? ['--'] : name === 'kitty' ? [] : name === 'xfce4-terminal' ? ['-x'] : ['-e'];
+  return { app: name, file: terminal, args: [...flag, ...command] };
+}
+
+/** Whether `command` is an executable on PATH (with Windows' PATHEXT extensions). */
+export function onPath(command: string, env: NodeJS.ProcessEnv = process.env, platform: NodeJS.Platform = process.platform): boolean {
+  const exts = platform === 'win32' ? (env.PATHEXT ?? '.COM;.EXE;.BAT;.CMD').split(';') : [''];
+  for (const dir of (env.PATH ?? env.Path ?? '').split(path.delimiter)) {
+    if (!dir) continue;
+    for (const ext of exts) {
+      try {
+        if (fs.statSync(path.join(dir, command + ext)).isFile()) return true;
+      } catch {
+        // Not here.
+      }
+    }
+  }
+  return false;
+}
+
+/** Opens a new terminal window that resumes an ended session in its own folder. Returns the terminal's name. */
+export async function resumeInTerminal(cwd: string, sessionId: string): Promise<string> {
+  if (process.platform === 'darwin') {
+    await osascript(resumeScript(cwd, sessionId));
+    return 'Terminal';
+  }
+  const launch = resumeLaunch(process.platform, cwd, sessionId, (c) => onPath(c));
+  if (!launch) throw new Error('No terminal emulator was found. Set the TERMINAL environment variable to yours and restart claude-code-control-tower.');
+  await new Promise<void>((resolve, reject) => {
+    const child = spawn(launch.file, launch.args, { cwd, detached: true, stdio: 'ignore', windowsVerbatimArguments: launch.file === 'cmd.exe' });
+    child.once('error', (err) => reject(new Error(`Could not start ${launch.app}: ${err.message}`)));
+    child.once('spawn', () => {
+      child.unref();
+      resolve();
+    });
+  });
+  return launch.app;
 }

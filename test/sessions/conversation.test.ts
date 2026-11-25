@@ -77,6 +77,7 @@ describe('parseConversation', () => {
     expect(toolName('mcp__Claude_Browser__browser_batch')).toBe('browser_batch');
     expect(describeTool('WebFetch', { url: 'https://example.com/a/b' })).toBe('example.com');
     expect(describeTool('Grep', { pattern: 'TODO' })).toBe('TODO');
+    expect(describeTool('Read', { file_path: 'C:\\Users\\me\\app\\main.ts' })).toBe(describeTool('Read', { file_path: '/home/me/app/main.ts' }));
   });
 });
 

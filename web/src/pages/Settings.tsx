@@ -6,7 +6,9 @@ import type { AppState } from "@/lib/hooks";
 
 export function Settings({ app }: { app: AppState }) {
   const { config } = app.state!;
-  const command = `ANTHROPIC_BASE_URL=http://127.0.0.1:${config.port} claude`;
+  // The router only listens on loopback, so this browser runs on the same machine. Windows gets PowerShell syntax.
+  const url = `http://127.0.0.1:${config.port}`;
+  const command = navigator.userAgent.includes("Windows") ? `$env:ANTHROPIC_BASE_URL="${url}"; claude` : `ANTHROPIC_BASE_URL=${url} claude`;
 
   return (
     <div className="grid max-w-3xl gap-4">
@@ -144,7 +146,7 @@ function SessionsSettings({ app }: { app: AppState }) {
       <CardHeader>
         <div>
           <CardTitle>Sessions</CardTitle>
-          <CardDescription>All Claude Code sessions on this Mac are shown. A session inside the projects folder is labelled with its project; others with their own folder.</CardDescription>
+          <CardDescription>All Claude Code sessions on this machine are shown. A session inside the projects folder is labelled with its project; others with their own folder.</CardDescription>
         </div>
       </CardHeader>
       <CardContent className="grid gap-4">

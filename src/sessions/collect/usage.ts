@@ -2,6 +2,7 @@ import { execFile } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { claudeInvocation, claudeNotFound } from '../../claudeCommand.ts';
 import type { PullRequest, UsageWindow } from '../types.ts';
 
 const WEEK = 7 * 24 * 3_600_000;
@@ -93,31 +94,32 @@ export class LiveUsage {
     try {
       const cwd = path.join(os.tmpdir(), USAGE_CHECK_DIR);
       fs.mkdirSync(cwd, { recursive: true });
+      const claude = claudeInvocation([
+        '-p',
+        'Reply with the single word OK.',
+        '--model',
+        'haiku',
+        '--output-format',
+        'stream-json',
+        '--verbose',
+        '--no-session-persistence',
+        '--system-prompt',
+        'Reply with the single word OK.',
+        '--tools',
+        '',
+        '--strict-mcp-config',
+        '--disable-slash-commands',
+        '--setting-sources',
+        'project',
+      ]);
       const output = await new Promise<string>((resolve, reject) => {
         execFile(
-          'claude',
-          [
-            '-p',
-            'Reply with the single word OK.',
-            '--model',
-            'haiku',
-            '--output-format',
-            'stream-json',
-            '--verbose',
-            '--no-session-persistence',
-            '--system-prompt',
-            'Reply with the single word OK.',
-            '--tools',
-            '',
-            '--strict-mcp-config',
-            '--disable-slash-commands',
-            '--setting-sources',
-            'project',
-          ],
+          claude.file,
+          claude.args,
           // Without these, a router started from a shell pointed at itself would send this check through
           // the router (maybe to Gemini), and the reply would carry no Anthropic limits.
-          { cwd, timeout: 60_000, maxBuffer: 4 * 1024 * 1024, env: withoutRouterEnv(process.env) },
-          (err, stdout) => (stdout ? resolve(stdout) : reject(err ?? new Error('no output'))),
+          { cwd, shell: claude.shell, timeout: 60_000, maxBuffer: 4 * 1024 * 1024, env: withoutRouterEnv(process.env) },
+          (err, stdout, stderr) => (stdout ? resolve(stdout) : reject(Object.assign(err ?? new Error('no output'), { stderr }))),
         );
       });
       const parsed = parseRateLimitEvent(output);
@@ -128,7 +130,7 @@ export class LiveUsage {
         this.problem = 'Claude answered without limit figures (they are only reported for subscription plans).';
       }
     } catch (e) {
-      const missing = (e as NodeJS.ErrnoException).code === 'ENOENT';
+      const missing = claudeNotFound(e, (e as { stderr?: string }).stderr);
       this.problem = missing
         ? 'The claude command was not found. Start Claude Office from a terminal where "claude" works.'
         : 'The usage check did not finish. It will be tried again.';

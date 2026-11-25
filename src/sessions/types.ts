@@ -164,6 +164,8 @@ export interface Snapshot {
   history: PastSession[];
   usage: Usage;
   config: Config;
+  /** Whether the server can bring a running session's terminal window forward (macOS only). */
+  canFocusTerminal: boolean;
 }
 
 /** One entry in a session's conversation, as a person reads it. */

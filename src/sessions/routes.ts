@@ -9,7 +9,7 @@ import { readConversation } from './collect/conversation.ts';
 import { findTranscript } from './collect/transcript.ts';
 import { LiveUsage, TranscriptScanner } from './collect/usage.ts';
 import { collectSnapshot, pathsFor } from './state.ts';
-import { resumeInTerminal, showTerminal } from './terminal.ts';
+import { canFocusTerminal, resumeInTerminal, showTerminal } from './terminal.ts';
 import type { RouterSummary, Snapshot } from './types.ts';
 
 // Ported from Claude Office's server/api.ts: same snapshot, stream and conversation rules, on Hono.
@@ -157,14 +157,15 @@ export function sessionRoutes(app: Hono): void {
         if (live.app !== 'terminal') {
           return c.json({ error: 'That session is running in another app. Reply there; resuming it in a terminal would run two copies.' }, 409);
         }
+        if (!canFocusTerminal()) return c.json({ error: 'Bringing a running terminal forward is only supported on macOS.' }, 409);
         const opened = await showTerminal(live.pid);
         if (opened) return c.json({ opened });
         return c.json({ error: 'Could not find its terminal window. Only Terminal and iTerm2 are supported.' }, 404);
       }
       if (past) {
         if (!fs.existsSync(past.cwd) || !fs.statSync(past.cwd).isDirectory()) return c.json({ error: 'The session folder no longer exists.' }, 404);
-        await resumeInTerminal(past.cwd, id);
-        return c.json({ opened: 'Terminal', resumed: true });
+        const opened = await resumeInTerminal(past.cwd, id);
+        return c.json({ opened, resumed: true });
       }
     } catch (e) {
       return c.json({ error: (e as Error).message }, 500);

@@ -2,12 +2,12 @@
 
 # claude-code-control-tower
 
-**Mission control for Claude Code, running entirely on your Mac.**
+**Mission control for Claude Code, running entirely on your machine.**
 
 See every Claude Code session at a glance, route models across Anthropic and Gemini with automatic fallback,<br>and tune your setup. No cloud, no telemetry, no accounts.
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-![Platform: macOS](https://img.shields.io/badge/platform-macOS-lightgrey.svg)
+![Platform: macOS | Linux | Windows](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey.svg)
 ![Node 22+](https://img.shields.io/badge/node-%3E%3D22-339933.svg)
 ![Local only](https://img.shields.io/badge/runs-127.0.0.1%20only-success.svg)
 ![No telemetry](https://img.shields.io/badge/telemetry-none-success.svg)
@@ -24,7 +24,7 @@ See every Claude Code session at a glance, route models across Anthropic and Gem
 
 | | |
 |---|---|
-| 🗂️ **Sessions board** | Every Claude Code session on this Mac (terminal, VS Code, Claude desktop app) in one place: who is waiting for you, what is working, what is done, how full each context is, and your plan's usage. Chimes when a session needs you. |
+| 🗂️ **Sessions board** | Every Claude Code session on this machine (terminal, VS Code, Claude desktop app) in one place: who is waiting for you, what is working, what is done, how full each context is, and your plan's usage. Chimes when a session needs you. |
 | 🔀 **Model router** | A local proxy Claude Code talks to instead of Anthropic's API. Each request goes to **Anthropic** (unchanged, your own login) or **Google Gemini** (translated, streaming and tools included), following a fallback chain per model family. |
 | 🛟 **Automatic fallback** | If a target fails before replying, the next one answers. End each chain with Anthropic and a request always gets answered. |
 | 🩺 **Setup analyzer** | Finds what bloats your context and wastes tokens: oversized instructions, duplicate skills and MCP servers, unused setup, broken hooks. |
@@ -45,7 +45,9 @@ The Sessions page works whether or not you route anything: it only reads Claude 
 
 ### 1. Requirements
 
-- macOS (the Sessions page reads Claude Code's files from the standard Mac locations)
+- macOS, Linux or Windows. Everything works on all three, with two exceptions:
+  - **Show terminal** (bring a running session's window forward) is macOS only. **Resume in terminal** works everywhere.
+  - Claude desktop app sessions show only where the desktop app runs (macOS and Windows).
 - Node.js 22 or newer: `node -v`
 - Claude Code installed and logged in (`claude` on your PATH). The usage figures on the Sessions page need a Claude subscription plan.
 - For Gemini routing: a Google **Vertex AI express-mode key** (plus its project number) or an **AI Studio key**. Not needed if you only want the Sessions page.
@@ -122,6 +124,8 @@ For every session, add it to `~/.claude/settings.json` (Claude Code reads `env` 
 ```json
 {
   "env": { "ANTHROPIC_BASE_URL": "http://127.0.0.1:3456" }
+On Windows (PowerShell): `$env:ANTHROPIC_BASE_URL="http://127.0.0.1:3456"; claude`
+
 }
 ```
 
@@ -131,9 +135,11 @@ With **Anthropic** as the main provider the router behaves like Anthropic's API,
 
 ### 8. Start it automatically and keep it running (recommended)
 
-Because Claude Code depends on the router once it points here, run the router so it starts on login and restarts itself if it crashes. On a Mac that is a launchd LaunchAgent with `RunAtLoad` (start at login) and `KeepAlive` (relaunch whenever the process exits).
+Because Claude Code depends on the router once it points here, run the router so it starts on login and restarts itself if it crashes. Pick your OS below.
 
-Install the template in `launchd/com.claude-router.plist` (run from the repo folder, after `npm install`):
+#### macOS (launchd)
+
+A launchd LaunchAgent with `RunAtLoad` (start at login) and `KeepAlive` (relaunch whenever the process exits). Install the template in `launchd/com.claude-router.plist` (run from the repo folder, after `npm install`):
 
 ```bash
 mkdir -p ~/.claude-router ~/Library/LaunchAgents
@@ -161,9 +167,33 @@ Your Anthropic login is passed through untouched for Anthropic targets and never
 ---
 
 ## Everyday use
+#### Linux (systemd user service)
+
+Install the template in `autostart/linux/` (run from the repo folder, after `npm install`):
+
+```bash
+mkdir -p ~/.claude-router ~/.config/systemd/user
+sed -e "s|__NODE__|$(command -v node)|g" -e "s|__REPO__|$PWD|g" \
+  autostart/linux/claude-code-control-tower.service > ~/.config/systemd/user/claude-code-control-tower.service
+systemctl --user daemon-reload
+systemctl --user enable --now claude-code-control-tower
+```
+
+Check it with the same `curl` line; restart it with `systemctl --user restart claude-code-control-tower`; logs go to `~/.claude-router/router.log`. The unit puts `~/.local/bin` on `PATH` for `claude`; edit the `Environment=PATH=` line if it lives elsewhere. To keep it running while you are logged out, run `loginctl enable-linger $USER` once. Remove it with `systemctl --user disable --now claude-code-control-tower` and delete the unit file.
+
+#### Windows (Task Scheduler)
+
+Run from the repo folder in PowerShell, after `npm install`:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File autostart\windows\install-task.ps1
+```
+
+It registers a task named `claude-code-control-tower` that starts at logon and restarts (once a minute, if it exits with an error). Logs go to `%USERPROFILE%\.claude-router\router.log`. Restart it with `Stop-ScheduledTask` / `Start-ScheduledTask -TaskName claude-code-control-tower`; remove it with `Unregister-ScheduledTask -TaskName claude-code-control-tower -Confirm:$false`.
+
 
 - **Sessions** (main page): three columns, **Waiting for me**, **Working**, **Done**. Each card shows its project (a folder directly inside your projects folder) or its own folder marked "no project", the branch, what it asks or is doing, time in that state, context use and subagents. Waiting cards have a red **Reply in VS Code / the Claude app** button. Sessions that went through the router show which provider and model answered them (and any fallback). **Ended recently** at the bottom lists sessions from the last 24 hours.
-- **Terminal buttons**: a session running in Terminal or iTerm2 has a **Show terminal** button (**Reply in Terminal** when it is waiting for you) that brings its window to the front. An ended session's panel has **Resume in Terminal**, which opens a new Terminal window in the session's folder running `claude --resume <id>`. A session still running in VS Code or the Claude app has no such button, because resuming it in a terminal would run two copies. The first use may ask macOS to let the router control Terminal (System Settings > Privacy & Security > Automation). Terminals other than Terminal and iTerm2 can't be focused.
+- **Terminal buttons**: on macOS, a session running in Terminal or iTerm2 has a **Show terminal** button (**Reply in Terminal** when it is waiting for you) that brings its window to the front. The first use may ask macOS to let the router control Terminal (System Settings > Privacy & Security > Automation); other terminals can't be focused, and Linux and Windows have no such button. An ended session's panel has **Resume in terminal**, which opens a new terminal window in the session's folder running `claude --resume <id>`: Terminal on macOS, Windows Terminal (or Command Prompt) on Windows, and `$TERMINAL` or the first of `x-terminal-emulator`, `gnome-terminal`, `konsole`, `xfce4-terminal`, `kitty`, `alacritty`, `xterm` on Linux. A session still running in VS Code or the Claude app has no such button, because resuming it in a terminal would run two copies.
 - Click a card for its panel (drag its edge to resize, Escape closes):
   - **Overview**: the question or last message, model, times, context window, subagents and their tokens.
   - **Conversation**: the whole session, read-only. Tool steps fold into one line you can open. You reply in the app the session runs in.
@@ -188,7 +218,9 @@ Your Anthropic login is passed through untouched for Anthropic targets and never
 | A request was answered by Anthropic instead of Gemini | That's the fallback. Open the row in **Logs** to see why the Gemini attempt failed. |
 | Usage strip shows "Saved by Claude … ago" or a problem | The live check needs `claude` on the PATH of the terminal that started the router, and a subscription plan. |
 | "macOS has not allowed claude-code-control-tower to control the terminal" | Allow it under System Settings > Privacy & Security > Automation (the entry is for the app that runs the router, `node`), then press the button again. |
-| A session is missing from the board | Only sessions on this Mac show, not cloud sessions. A permission prompt shows as waiting only when Claude marks it in its session file. |
+| "No terminal emulator was found" (Linux) | Set `TERMINAL` to your terminal's command (for example `TERMINAL=wezterm`) in the environment that starts the router, then restart it. |
+| Usage check or review says "claude command was not found" (Windows) | Start the router from a terminal where `claude` works; for the scheduled task, make sure `claude` is on your user `PATH`. |
+| A session is missing from the board | Only sessions on this machine show, not cloud sessions. A permission prompt shows as waiting only when Claude marks it in its session file. |
 
 ---
 
@@ -231,7 +263,7 @@ The Sessions page only reads Claude Code's files; it never changes Claude's sett
 | Context, model, branch, questions, last message, conversation | `~/.claude/projects/<folder>/<session>.jsonl` (the last 256 KB; the conversation in 1.5 MB pages) |
 | Titles, pull requests, ended sessions | one incremental pass over transcripts changed in the last 7 days |
 | Subagents | `<session>/subagents/agent-<id>.meta.json` and its transcript |
-| Desktop app summaries and blocked state | `~/Library/Application Support/Claude/claude-code-sessions/` |
+| Desktop app summaries and blocked state | `Claude/claude-code-sessions/` in the desktop app's data folder: `~/Library/Application Support` (macOS), `%APPDATA%` (Windows), `$XDG_CONFIG_HOME` or `~/.config` (Linux) |
 | Session and week usage | a tiny `claude -p` Haiku call in an empty temp folder, with no hooks, plugins or MCP servers, run without `ANTHROPIC_BASE_URL` so it always reaches Anthropic; fallback: `~/.claude.json` |
 
 Credential files and `*.key` files are never opened. These files are Claude Code internals, so a Claude Code update can change them.
@@ -273,6 +305,7 @@ npm run build      # dashboard into dist/web
 
 ---
 
+| `autostart/` | the same for Linux (systemd user service) and Windows (Task Scheduler script) |
 ## Contributing and license
 
 Issues and pull requests are welcome, see [CONTRIBUTING.md](CONTRIBUTING.md). Released under the [MIT License](LICENSE).

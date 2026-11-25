@@ -7,6 +7,7 @@ import type { TableDir } from './collect/projects.ts';
 import { ELSEWHERE, listTables, tableFor } from './collect/projects.ts';
 import { readRegistry } from './collect/registry.ts';
 import { readSubagents } from './collect/subagents.ts';
+import { canFocusTerminal } from './terminal.ts';
 import type { TailSummary } from './collect/transcript.ts';
 import { tokensUsed } from './collect/tokens.ts';
 import { cachedTail, findTranscript } from './collect/transcript.ts';
@@ -25,13 +26,20 @@ export interface Paths {
   desktopSessions: string;
 }
 
-export function pathsFor(home: string): Paths {
+export function pathsFor(home: string, platform: NodeJS.Platform = process.platform, env: NodeJS.ProcessEnv = process.env): Paths {
   return {
     sessions: path.join(home, '.claude', 'sessions'),
     projects: path.join(home, '.claude', 'projects'),
     claudeJson: path.join(home, '.claude.json'),
-    desktopSessions: path.join(home, 'Library', 'Application Support', 'Claude', 'claude-code-sessions'),
+    desktopSessions: path.join(appDataDir(home, platform, env), 'Claude', 'claude-code-sessions'),
   };
+}
+
+/** Where the Claude desktop app keeps its data on each OS. Linux has no official app, so that folder is usually missing. */
+function appDataDir(home: string, platform: NodeJS.Platform, env: NodeJS.ProcessEnv): string {
+  if (platform === 'darwin') return path.join(home, 'Library', 'Application Support');
+  if (platform === 'win32') return env.APPDATA || path.join(home, 'AppData', 'Roaming');
+  return env.XDG_CONFIG_HOME || path.join(home, '.config');
 }
 
 export interface StateInput {
@@ -163,7 +171,7 @@ const MAX_HISTORY = 25;
 /** Where a session's table is, and the name it goes by there. */
 function projectOf(cwd: string, dirs: TableDir[]): string {
   const dir = tableFor(cwd, dirs);
-  return dir.id === 'elsewhere' ? (cwd.split('/').filter(Boolean).at(-1) ?? dir.name) : dir.name;
+  return dir.id === 'elsewhere' ? (cwd.split(/[\\/]/).filter(Boolean).at(-1) ?? dir.name) : dir.name;
 }
 
 /** Sessions whose transcript stopped changing in the last day and that are no longer running. */
@@ -303,5 +311,6 @@ export function collectSnapshot(
     tables: [...tables.values()],
     usage,
     config,
+    canFocusTerminal: canFocusTerminal(),
   };
 }

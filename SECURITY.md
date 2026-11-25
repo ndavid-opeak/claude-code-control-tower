@@ -18,7 +18,7 @@ claude-code-control-tower sits between Claude Code and the model APIs, so it see
 
 - Once `ANTHROPIC_BASE_URL` points at the router, all Claude Code traffic goes through it. Run the router from a checkout you trust and keep it up to date.
 - Requests routed to Gemini are sent to Google under your Google key and Google's terms.
-- Anyone with a shell on your Mac as your user can read `.env` and `~/.claude-router/`, the same as `~/.claude/`.
+- Anyone with a shell on your machine as your user can read `.env` and `~/.claude-router/`, the same as `~/.claude/`.
 
 ## Reporting a vulnerability
 
