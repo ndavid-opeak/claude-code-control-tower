@@ -90,7 +90,9 @@ function Card({ session: { agent, project, inProject }, now, open, onOpen }: { s
   return (
     <div
       className={cn(
-        "group relative overflow-hidden rounded-xl border bg-card shadow-xs transition-shadow before:absolute before:inset-y-0 before:left-0 before:w-[3px] hover:shadow-md",
+        "group relative overflow-hidden rounded-xl border bg-card shadow-xs transition-[box-shadow,transform,border-color] duration-150 ease-out before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:transition-[width] before:duration-150",
+        // Hover lifts the card a little, darkens its edge and widens its state bar, so you see which one you're on.
+        "hover:-translate-y-0.5 hover:border-foreground/20 hover:shadow-lg hover:before:w-[5px] motion-reduce:transition-none motion-reduce:hover:translate-y-0",
         accent,
         open && "ring-2 ring-primary/50",
         hasEvent && !open && "ring-2 ring-warning/70 shadow-[0_0_0_6px] shadow-warning/15",
