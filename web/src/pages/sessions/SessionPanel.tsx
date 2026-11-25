@@ -9,7 +9,7 @@ import type { Session } from "@/lib/sessions/sessions";
 import { useNow } from "@/lib/sessions/useSnapshot";
 import { cn } from "@/lib/utils";
 import { Conversation } from "./Conversation";
-import { OpenLink, PrLinks, ProjectLabel, Rich, TerminalButton } from "./bits";
+import { CONTEXT_LEVEL_TEXT, ContextMark, OpenLink, PrLinks, ProjectLabel, Rich, TerminalButton } from "./bits";
 
 export type PanelView = "overview" | "conversation" | "router";
 
@@ -133,8 +133,15 @@ function Overview({ session: { agent, ended } }: { session: Session }) {
       ) : (
         <Section title="Details">
           <div className="grid grid-cols-2 gap-2">
-            <div className={cn("col-span-2 grid gap-1.5 rounded-lg border px-3 py-2.5", near && "border-warning/50 bg-warning/5")}>
-              <span className="text-xs text-muted-foreground">Context window</span>
+            <div
+              className={cn(
+                "col-span-2 grid gap-1.5 rounded-lg border px-3 py-2.5",
+                agent.contextLevel === "danger" ? "border-destructive/50 bg-destructive/5" : (near || agent.contextLevel === "warn") && "border-warning/50 bg-warning/5",
+              )}
+            >
+              <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                Context window <ContextMark level={agent.contextLevel} />
+              </span>
               {agent.contextTokens && agent.contextLimit ? (
                 <>
                   <span className="flex items-baseline gap-1.5 text-sm font-semibold tabular-nums">
@@ -142,9 +149,13 @@ function Overview({ session: { agent, ended } }: { session: Session }) {
                     <span className="ml-auto">{Math.round(fraction * 100)}%</span>
                   </span>
                   <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-                    <div className={cn("h-full rounded-full", near ? "bg-warning" : "bg-primary")} style={{ width: `${fraction * 100}%` }} />
+                    <div
+                      className={cn("h-full rounded-full", agent.contextLevel === "danger" ? "bg-destructive" : near || agent.contextLevel ? "bg-warning" : "bg-primary")}
+                      style={{ width: `${fraction * 100}%` }}
+                    />
                   </div>
-                  {near && <span className="text-xs">Close to auto-compact (about {tokens(agent.compactAt!)}). Wrap up or start a fresh session.</span>}
+                  {agent.contextLevel && <span className="text-xs">{CONTEXT_LEVEL_TEXT[agent.contextLevel]}</span>}
+                  {near && !agent.contextLevel && <span className="text-xs">Close to auto-compact (about {tokens(agent.compactAt!)}). Wrap up or start a fresh session.</span>}
                 </>
               ) : (
                 <span className="text-sm">Not known yet</span>

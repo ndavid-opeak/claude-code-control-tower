@@ -31,7 +31,7 @@ export interface Config {
   routes: Record<Family, string[]>;
   fallback: { cooldownSec: number; timeoutMs: number };
   capture: boolean;
-  sessions: { projectsRoot: string; pollMs: number; usageCheckMin: number; contextLimits: Record<string, number> };
+  sessions: { projectsRoot: string; pollMs: number; usageCheckMin: number; contextLimits: Record<string, number>; contextAlerts: Record<string, { warn: number; danger: number }> };
   port: number;
 }
 export interface KeyStatus {

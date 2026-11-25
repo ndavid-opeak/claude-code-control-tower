@@ -13,7 +13,7 @@ import { cachedTail, findTranscript } from './collect/transcript.ts';
 import type { TranscriptScanner } from './collect/usage.ts';
 import type { LiveUsage } from './collect/usage.ts';
 import { familyOf, readPlanUsage, USAGE_CHECK_DIR } from './collect/usage.ts';
-import type { Config, MainAgent, MainState, PastSession, Snapshot, Table, Usage, UsageBreakdown } from './types.ts';
+import type { Config, ContextAlert, ContextLevel, MainAgent, MainState, PastSession, Snapshot, Table, Usage, UsageBreakdown } from './types.ts';
 
 /** A session stays "working" this long after it last reported busy, so a pause between steps does not flip it to done and back. */
 const BUSY_GRACE_MS = 6000;
@@ -96,6 +96,16 @@ export function contextLimitFor(
   if (override) return override;
   if (model && hasMillionWindow(model)) return 1_000_000;
   return Math.max(tokens ?? 0, seenMax[family] ?? 0) > 200_000 ? 1_000_000 : 200_000;
+}
+
+/** Whether a context of `tokens` has passed the warning or danger size set for this model's family. */
+export function contextLevelFor(model: string | undefined, tokens: number | undefined, alerts: Record<string, ContextAlert>): ContextLevel | undefined {
+  if (!tokens) return undefined;
+  const a = alerts[model ? familyOf(model) : 'other'] ?? alerts.other;
+  if (!a) return undefined;
+  if (tokens >= a.danger) return 'danger';
+  if (tokens >= a.warn) return 'warn';
+  return undefined;
 }
 
 /**
@@ -269,6 +279,7 @@ export function collectSnapshot(
       tokensUsed: transcript ? tokensUsed(transcript) : undefined,
       contextLimit: limit(tail.model, tail.contextTokens),
       compactAt: compactPoint(limit(tail.model, tail.contextTokens)),
+      contextLevel: contextLevelFor(tail.model, tail.contextTokens, config.contextAlerts ?? {}),
       subagents: (transcript ? readSubagents(transcript, s.startedAt, now) : []).map((sub) => ({
         ...sub,
         contextLimit: limit(sub.model, sub.contextTokens),

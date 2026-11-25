@@ -1,14 +1,14 @@
-import { ExternalLink, GitPullRequest, SquareTerminal } from "lucide-react";
+import { CircleAlert, ExternalLink, GitPullRequest, OctagonAlert, SquareTerminal } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { toast } from "sonner";
-import type { MainAgent, PullRequest, RouterSummary } from "@server/sessions/types.ts";
+import type { ContextLevel, MainAgent, PullRequest, RouterSummary } from "@server/sessions/types.ts";
 import { Badge } from "@/components/ui";
 import { api } from "@/lib/api";
 import { APP_NAME, withoutLinks } from "@/lib/sessions/format";
 import { cn } from "@/lib/utils";
 
-/** A ring that fills as the context window fills, turning red when it is nearly full. */
-export function ContextRing({ fraction, size = 16 }: { fraction: number; size?: number }) {
+/** A ring that fills as the context window fills: amber past the warning size, red past the danger size or nearly full. */
+export function ContextRing({ fraction, level, size = 16 }: { fraction: number; level?: ContextLevel; size?: number }) {
   const r = size / 2 - 2;
   const length = 2 * Math.PI * r;
   return (
@@ -21,11 +21,31 @@ export function ContextRing({ fraction, size = 16 }: { fraction: number; size?: 
         fill="none"
         strokeWidth={2.5}
         strokeLinecap="round"
-        className={fraction > 0.85 ? "stroke-destructive" : "stroke-primary"}
+        className={level === "danger" || fraction > 0.85 ? "stroke-destructive" : level === "warn" ? "stroke-warning" : "stroke-primary"}
         strokeDasharray={`${length * fraction} ${length}`}
         transform={`rotate(-90 ${size / 2} ${size / 2})`}
       />
     </svg>
+  );
+}
+
+export const CONTEXT_LEVEL_TEXT: Record<ContextLevel, string> = {
+  warn: "Long context: answers start to slip from here. Wrap up the task, then /compact or start fresh.",
+  danger: "Context is too long: expect forgotten details and mistakes. Run /compact or start a fresh session now.",
+};
+
+/** "!" once the context passes the warning size, a stop sign past the danger size. */
+export function ContextMark({ level, className }: { level?: ContextLevel; className?: string }) {
+  if (!level) return null;
+  const Icon = level === "danger" ? OctagonAlert : CircleAlert;
+  return (
+    <Icon
+      role="img"
+      aria-label={level === "danger" ? "Context too long" : "Context getting long"}
+      className={cn("size-3.5 shrink-0", level === "danger" ? "text-destructive" : "text-warning", className)}
+    >
+      <title>{CONTEXT_LEVEL_TEXT[level]}</title>
+    </Icon>
   );
 }
 

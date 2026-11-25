@@ -1,5 +1,5 @@
 import { Check, Copy } from "lucide-react";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Field, Input, Switch } from "@/components/ui";
 import type { AppState } from "@/lib/hooks";
 
@@ -86,6 +86,8 @@ function CopyLine({ text }: { text: string }) {
 }
 
 const FAMILIES = ["fable", "opus", "sonnet", "haiku"];
+const ALERT_FAMILIES = [...FAMILIES, "other"];
+const title = (f: string) => f[0].toUpperCase() + f.slice(1);
 
 /** Sessions viewer settings (from Claude Office). */
 function SessionsSettings({ app }: { app: AppState }) {
@@ -96,14 +98,22 @@ function SessionsSettings({ app }: { app: AppState }) {
   const [limits, setLimits] = useState<Record<string, string>>(
     Object.fromEntries(FAMILIES.map((f) => [f, s.contextLimits[f] ? String(s.contextLimits[f] / 1000) : ""])),
   );
+  const [alerts, setAlerts] = useState<Record<string, { warn: string; danger: string }>>(
+    Object.fromEntries(
+      ALERT_FAMILIES.map((f) => [f, { warn: String((s.contextAlerts?.[f]?.warn ?? 0) / 1000), danger: String((s.contextAlerts?.[f]?.danger ?? 0) / 1000) }]),
+    ),
+  );
   const save = () => {
+    const contextAlerts = Object.fromEntries(
+      Object.entries(alerts).map(([f, a]) => [f, { warn: Number(a.warn) * 1000, danger: Number(a.danger) * 1000 }]),
+    );
     const contextLimits = Object.fromEntries(
       Object.entries(limits)
         .filter(([, v]) => v.trim() !== "")
         .map(([k, v]) => [k, Number(v) * 1000]),
     );
     void app.save(
-      { sessions: { projectsRoot, pollMs: Number(seconds) * 1000, usageCheckMin: Number(usageMin), contextLimits } },
+      { sessions: { projectsRoot, pollMs: Number(seconds) * 1000, usageCheckMin: Number(usageMin), contextLimits, contextAlerts } },
       "Sessions settings saved",
     );
   };
@@ -132,12 +142,43 @@ function SessionsSettings({ app }: { app: AppState }) {
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             {FAMILIES.map((f) => (
               <label key={f} className="grid gap-1 text-xs text-muted-foreground">
-                {f[0].toUpperCase() + f.slice(1)}
+                {title(f)}
                 <Input type="number" min={1} placeholder="Auto" value={limits[f]} onChange={(e) => setLimits({ ...limits, [f]: e.target.value })} />
               </label>
             ))}
           </div>
           <span className="text-xs text-muted-foreground">Claude does not record the size. Auto uses 1M for current models and 200k for older ones.</span>
+        </fieldset>
+        <fieldset className="grid gap-1.5">
+          <legend className="mb-1.5 text-[13px] font-medium">Context alerts, in thousands of tokens</legend>
+          <div className="grid grid-cols-[5rem_1fr_1fr] items-center gap-x-2 gap-y-1.5 text-xs text-muted-foreground sm:max-w-md">
+            <span />
+            <span>Warning (!)</span>
+            <span>Danger</span>
+            {ALERT_FAMILIES.map((f) => (
+              <Fragment key={f}>
+                <span>{title(f)}</span>
+                <Input
+                  type="number"
+                  min={1}
+                  aria-label={`${title(f)} warning size`}
+                  value={alerts[f].warn}
+                  onChange={(e) => setAlerts({ ...alerts, [f]: { ...alerts[f], warn: e.target.value } })}
+                />
+                <Input
+                  type="number"
+                  min={1}
+                  aria-label={`${title(f)} danger size`}
+                  value={alerts[f].danger}
+                  onChange={(e) => setAlerts({ ...alerts, [f]: { ...alerts[f], danger: e.target.value } })}
+                />
+              </Fragment>
+            ))}
+          </div>
+          <span className="text-xs text-muted-foreground">
+            A session gets a ! past the warning size and a stop sign past the danger size. There is no official limit; reports put the slip around 200k-250k
+            tokens on 1M models, and smaller models slip sooner.
+          </span>
         </fieldset>
         <Button className="justify-self-start" onClick={save}>
           Save

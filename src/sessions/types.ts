@@ -59,6 +59,8 @@ export interface MainAgent {
   tokensUsed?: number;
   /** Roughly where Claude Code compacts this session's context automatically. */
   compactAt?: number;
+  /** Set once the context passes the warning or danger size for the session's model. */
+  contextLevel?: ContextLevel;
   subagents: SubAgent[];
   /** The newest request this session sent through claude-router, if any. */
   router?: RouterSummary;
@@ -117,7 +119,17 @@ export interface Config {
   pollMs: number;
   /** Minutes between live usage checks while the page is open; 0 turns them off. */
   usageCheckMin: number;
+  /** Context sizes, by family (fable, opus, sonnet, haiku, other), where a session gets a warning and then a danger mark. */
+  contextAlerts: Record<string, ContextAlert>;
 }
+
+/** Context sizes in tokens: past `warn` answers start to slip, past `danger` the session should be compacted or restarted. */
+export interface ContextAlert {
+  warn: number;
+  danger: number;
+}
+
+export type ContextLevel = 'warn' | 'danger';
 
 /** A session that has ended recently. */
 export interface PastSession {

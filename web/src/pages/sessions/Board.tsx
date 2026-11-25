@@ -5,7 +5,7 @@ import { activityText, contextFraction, duration, lineOf, nearCompact, QUIET_MS 
 import { COLUMNS, inColumn, type Session } from "@/lib/sessions/sessions";
 import { useNow } from "@/lib/sessions/useSnapshot";
 import { cn } from "@/lib/utils";
-import { ContextRing, OpenLink, PrLinks, ProjectLabel, RouterBadge } from "./bits";
+import { CONTEXT_LEVEL_TEXT, ContextMark, ContextRing, OpenLink, PrLinks, ProjectLabel, RouterBadge } from "./bits";
 
 interface Props {
   sessions: Session[];
@@ -100,9 +100,17 @@ function Card({ session: { agent, project, inProject }, now, open, onOpen }: { s
         <span className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
           <span className="tabular-nums">{when}</span>
           {agent.contextTokens !== undefined && (
-            <span className="inline-flex items-center gap-1 tabular-nums" title="How full the context window is">
-              <ContextRing fraction={fraction} />
+            <span
+              className={cn(
+                "inline-flex items-center gap-1 tabular-nums",
+                agent.contextLevel === "danger" && "font-medium text-destructive",
+                agent.contextLevel === "warn" && "text-warning",
+              )}
+              title={agent.contextLevel ? CONTEXT_LEVEL_TEXT[agent.contextLevel] : "How full the context window is"}
+            >
+              <ContextRing fraction={fraction} level={agent.contextLevel} />
               {Math.round(fraction * 100)}%
+              <ContextMark level={agent.contextLevel} />
             </span>
           )}
           {helpers > 0 && (

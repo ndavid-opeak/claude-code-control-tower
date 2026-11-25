@@ -2,13 +2,32 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import type { Config } from './types.ts';
+import type { Config, ContextAlert } from './types.ts';
 
 /** This repo lives inside the projects folder, so its parent is the default root (as in Claude Office). */
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 
+/**
+ * Where long contexts start to hurt, in tokens, per model family. There is no official number: community
+ * reports put the slip around 200k-250k tokens on 1M-window models and serious trouble near half the
+ * window, and smaller models slip sooner. Adjustable in Settings.
+ */
+export const DEFAULT_CONTEXT_ALERTS: Record<string, ContextAlert> = {
+  fable: { warn: 250_000, danger: 500_000 },
+  opus: { warn: 250_000, danger: 500_000 },
+  sonnet: { warn: 200_000, danger: 400_000 },
+  haiku: { warn: 120_000, danger: 250_000 },
+  other: { warn: 150_000, danger: 300_000 },
+};
+
 export function defaultSessionsConfig(): Config {
-  return { projectsRoot: path.dirname(path.resolve(REPO)), contextLimits: {}, pollMs: 2000, usageCheckMin: 5 };
+  return {
+    projectsRoot: path.dirname(path.resolve(REPO)),
+    contextLimits: {},
+    pollMs: 2000,
+    usageCheckMin: 5,
+    contextAlerts: structuredClone(DEFAULT_CONTEXT_ALERTS),
+  };
 }
 
 /** Returns the merged settings, or a message saying what is wrong with the change. (From Claude Office.) */
@@ -38,6 +57,18 @@ export function applyConfigPatch(current: Config, patch: any): Config | string {
       if (Number.isFinite(n) && n > 0) limits[key] = Math.round(n);
     }
     next.contextLimits = limits;
+  }
+  if (patch.contextAlerts !== undefined) {
+    const alerts = { ...DEFAULT_CONTEXT_ALERTS, ...current.contextAlerts };
+    for (const [family, value] of Object.entries<any>(patch.contextAlerts ?? {})) {
+      if (!(family in DEFAULT_CONTEXT_ALERTS)) return `"${family}" is not a model family. Use fable, opus, sonnet, haiku or other.`;
+      const warn = Number(value?.warn);
+      const danger = Number(value?.danger);
+      if (!(warn > 0) || !(danger > 0)) return `Context alert sizes for ${family} must be numbers of tokens above 0.`;
+      if (warn >= danger) return `The warning size for ${family} must be below its danger size.`;
+      alerts[family] = { warn: Math.round(warn), danger: Math.round(danger) };
+    }
+    next.contextAlerts = alerts;
   }
   return next;
 }
