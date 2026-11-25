@@ -17,8 +17,6 @@ See every Claude Code session at a glance, route models across Anthropic and Gem
 ![Local only](https://img.shields.io/badge/runs-127.0.0.1%20only-success.svg)
 ![No telemetry](https://img.shields.io/badge/telemetry-none-success.svg)
 
-<sub>Formerly <b>claude-router</b>. Its state folder (<code>~/.claude-router</code>) and launchd label keep the old name so existing installs keep working.</sub>
-
 [Set up](#set-up) · [Everyday use](#everyday-use) · [Security](#security) · [Contributing](CONTRIBUTING.md)
 
 </div>
@@ -136,7 +134,7 @@ For every session, add it to `~/.claude/settings.json` (Claude Code reads `env` 
 
 > **Warning: once `ANTHROPIC_BASE_URL` points at the router, ALL of Claude Code's requests go through it, whichever provider answers them. If the router is down, Claude Code does not fall back to Anthropic's own URL: requests fail with "connection refused" and Claude will not work until the router is running again (or you remove the setting and restart `claude`).**
 
-With **Anthropic** as the main provider the router behaves like Anthropic's API, so while it is running, leaving the setting in costs nothing.
+With **Anthropic** as the main provider the router behaves like Anthropic's API, so while it is running, leaving the setting in costs nothing. Your Anthropic login is passed through untouched for Anthropic targets and never sent to Google.
 
 ### 8. Start it automatically and keep it running (recommended)
 
@@ -190,8 +188,6 @@ powershell -ExecutionPolicy Bypass -File autostart\windows\install-task.ps1
 ```
 
 It registers a task named `claude-code-control-tower` that starts at logon and restarts (once a minute, if it exits with an error). Logs go to `%USERPROFILE%\.claude-router\router.log`. Restart it with `Stop-ScheduledTask` / `Start-ScheduledTask -TaskName claude-code-control-tower`; remove it with `Unregister-ScheduledTask -TaskName claude-code-control-tower -Confirm:$false`.
-
-Your Anthropic login is passed through untouched for Anthropic targets and never sent to Google.
 
 ---
 
