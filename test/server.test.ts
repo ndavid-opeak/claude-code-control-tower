@@ -116,6 +116,12 @@ describe("routing and fallback", () => {
 });
 
 describe("dashboard API", () => {
+  it("answers unknown API paths with a JSON 404, never the dashboard page", async () => {
+    const res = await app.request("/api/no-such-route");
+    expect(res.status).toBe(404);
+    expect(await res.json()).toEqual({ error: "not found" });
+  });
+
   it("rejects bad config", async () => {
     expect((await put("/api/config", { mode: "gemini" })).status).toBe(400);
     expect((await put("/api/config", { providers: [{ id: "x", type: "gemini", api: "vertex", keyEnv: ["K"] }] })).status).toBe(400);

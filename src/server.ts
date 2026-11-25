@@ -211,6 +211,9 @@ app.get("/api/logs/:id", (c) => {
 sessionRoutes(app);
 analyzerRoutes(app);
 
+// An API path no route handles is an error, not the dashboard page (which the page would try to parse as JSON).
+app.all("/api/*", (c) => c.json({ error: "not found" }, 404));
+
 // ---- Dashboard (built by `npm run build` into dist/web) ----------------------
 
 const WEB_ROOT = fileURLToPath(new URL("../dist/web", import.meta.url));
