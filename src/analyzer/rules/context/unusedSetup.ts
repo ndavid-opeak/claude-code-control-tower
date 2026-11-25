@@ -1,4 +1,4 @@
-import { listPlugins, listSkills, readJson, type Skill } from '../../setup.ts';
+import { listPlugins, listSkills, listSyncedSkills, pluginMcpServers, readJson, type Skill } from '../../setup.ts';
 import type { Rule, RuleFinding } from '../types.ts';
 import { estimateTokens, UNUSED_MEDIUM_TOKEN_LIMIT } from './limits.ts';
 
@@ -41,9 +41,27 @@ export const unusedSetup: Rule = ({ claudeHome, claudeJsonPath }) => {
     }
   }
 
+  if (isObject(skillUsage)) {
+    const unused = listSyncedSkills(claudeHome).filter((s) => !skillUsed(s));
+    if (unused.length > 0) {
+      const tokens = tokensOf(unused);
+      findings.push({
+        id: 'context/unused-synced-skills',
+        severity: severityFor(tokens),
+        title: `${unused.length} skills synced from claude.ai were never used`,
+        detail: `~/.claude.json records no use of: ${names(unused)}. Their descriptions cost ~${tokens} tokens every turn.`,
+        file: unused[0].file,
+        fix: 'Turn off the skills you do not need in claude.ai settings under Capabilities.',
+        estimated: true,
+      });
+    }
+  }
+
   for (const p of plugins) {
     if (!p.enabled) continue;
     const own = skills.filter((s) => s.source === p.id);
+    // LSP and hook-only plugins ship nothing that is counted as use, so "never used" would be wrong.
+    if (own.length === 0 && pluginMcpServers(p).length === 0) continue;
     const pluginUsed = isObject(pluginUsage) && used(pluginUsage, p.id);
     const anySkillUsed = own.some(skillUsed);
     if (isObject(pluginUsage) && !pluginUsed && !anySkillUsed) {

@@ -51,6 +51,23 @@ describe('plugins installed but turned off', () => {
     expect(only('hygiene/plugin-disabled').map((x) => x.file)).toEqual([path.join(proj, '.claude', 'settings.json')]);
   });
 
+  it('reads user-scope enabled state from settings.local.json too, which wins over settings.json', () => {
+    install({ 'a@dir': [{ scope: 'user', installPath: path.join(tmp, 'p') }], 'b@dir': [{ scope: 'user', installPath: path.join(tmp, 'q') }] });
+    write(path.join(home, 'settings.json'), { enabledPlugins: { 'a@dir': false, 'b@dir': true } });
+    write(path.join(home, 'settings.local.json'), { enabledPlugins: { 'a@dir': true, 'b@dir': false } });
+    expect(only('hygiene/plugin-disabled').map((x) => x.title)).toEqual(['Plugin b@dir is installed but turned off']);
+  });
+
+  it('does not report a user plugin as turned off when a project enables it', () => {
+    const proj = project('app');
+    const other = project('other');
+    install({ 'a@dir': [{ scope: 'user', installPath: path.join(tmp, 'p') }], 'b@dir': [{ scope: 'user', installPath: path.join(tmp, 'q') }] });
+    write(path.join(home, 'settings.json'), { enabledPlugins: { 'a@dir': false, 'b@dir': false } });
+    write(path.join(proj, '.claude', 'settings.json'), { enabledPlugins: { 'a@dir': true } });
+    write(path.join(other, '.claude', 'settings.local.json'), { enabledPlugins: { 'b@dir': true } });
+    expect(only('hygiene/plugin-disabled')).toEqual([]);
+  });
+
   it('is quiet when every plugin is enabled or none are installed', () => {
     expect(only('hygiene/plugin-disabled')).toEqual([]);
     install({ 'ok@dir': [{ scope: 'user', installPath: path.join(tmp, 'q') }] });

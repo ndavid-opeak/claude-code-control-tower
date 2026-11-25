@@ -17,8 +17,11 @@ export interface Project {
 const CWD = /"cwd":"((?:[^"\\]|\\.)*)"/;
 const HEAD_BYTES = 256 * 1024;
 
-/** Every project under ~/.claude/projects whose folder can be found from its transcripts. */
-export function listProjects(claudeHome: string): Project[] {
+/**
+ * Every project under ~/.claude/projects whose folder can be found from its transcripts. With `keepUnknown`,
+ * folders without a cwd are listed too, labelled by their folder name and marked as not existing.
+ */
+export function listProjects(claudeHome: string, { keepUnknown = false } = {}): Project[] {
   const root = path.join(claudeHome, 'projects');
   let dirs: string[] = [];
   try {
@@ -31,6 +34,7 @@ export function listProjects(claudeHome: string): Project[] {
     const transcriptsDir = path.join(root, name);
     const cwd = cwdFrom(transcriptsDir);
     if (cwd) projects.push({ path: cwd, exists: fs.existsSync(cwd), transcriptsDir });
+    else if (keepUnknown) projects.push({ path: name, exists: false, transcriptsDir });
   }
   return projects;
 }

@@ -54,7 +54,7 @@ function readUsage(ctx: RuleContext): UsageScan {
   let cacheRead = 0;
   let inputSide = 0;
 
-  for (const project of listProjects(ctx.claudeHome)) {
+  for (const project of listProjects(ctx.claudeHome, { keepUnknown: true })) {
     if (isReviewCwd(project.path)) continue;
     let names: string[] = [];
     try {

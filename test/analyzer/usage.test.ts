@@ -157,6 +157,20 @@ describe('windows and scope', () => {
   });
 });
 
+describe('projects without a recorded folder', () => {
+  it('still counts a project folder whose transcripts have no cwd, labelled by the folder name', () => {
+    const dir = path.join(home, 'projects', '-Users-me-lost');
+    fs.mkdirSync(dir, { recursive: true });
+    const noCwd = JSON.parse(reply('m1', RECENT, { input: 2_000 }));
+    delete noCwd.cwd;
+    fs.writeFileSync(path.join(dir, 's1.jsonl'), JSON.stringify(noCwd) + '\n');
+    session('app', 's2', [reply('m2', RECENT, { input: 1_000 })]);
+    const u = run().usage;
+    expect(u.totalTokens).toBe(3_000);
+    expect(u.byProject).toMatchObject([{ project: '-Users-me-lost', tokens: 2_000 }, { project: '/work/app', tokens: 1_000 }]);
+  });
+});
+
 describe('breakdown', () => {
   it('splits tokens by project, model family and session, biggest first', () => {
     session('a', 's1', [reply('m1', RECENT, { input: 1_000, output: 500 }, 'claude-opus-4-5')]);

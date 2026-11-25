@@ -88,6 +88,15 @@ describe('skills synced from claude.ai', () => {
     const [f, ...rest] = dupes();
     expect(rest).toEqual([]);
     expect(f.detail).toContain('anthropic-skills');
+    expect(f.fix).not.toMatch(/disable anthropic-skills/);
+    expect(f.fix).toContain(path.join(home, 'skills', 'changelog-writer', 'SKILL.md'));
+    expect(f.fix).toMatch(/claude\.ai settings/);
+  });
+
+  it('still tells you to disable a plugin that ships the same skill as a user skill', () => {
+    installPlugins({ 'p@m': { skills: ['x'] } });
+    write(path.join(home, 'skills', 'x', 'SKILL.md'), '---\nname: x\ndescription: d\n---\n');
+    expect(dupes()[0].fix).toContain('disable p@m');
   });
 
   it('flags a plugin that overlaps the synced skills', () => {
@@ -123,7 +132,12 @@ describe('plugins with overlapping skills or commands', () => {
 describe('same service connected twice', () => {
   it('flags a claude.ai connector that duplicates a plugin server, found by tool-name overlap', () => {
     installPlugins({ 'slack@m': { mcp: { slack: { type: 'http', url: 'https://mcp.slack.com/mcp' } } } });
-    transcript([`mcp__${UUID}__slack_send_message`, `mcp__${UUID}__slack_read_channel`, 'mcp__plugin_slack_slack__slack_send_message']);
+    transcript([
+      `mcp__${UUID}__slack_send_message`,
+      `mcp__${UUID}__slack_read_channel`,
+      'mcp__plugin_slack_slack__slack_send_message',
+      'mcp__plugin_slack_slack__slack_read_channel',
+    ]);
     const [f, ...rest] = dupes();
     expect(rest).toEqual([]);
     expect(f.title).toMatch(/slack/i);
@@ -143,7 +157,27 @@ describe('same service connected twice', () => {
   });
 
   it('flags two connectors that expose the same tools', () => {
-    transcript([`mcp__${UUID}__slack_send_message`, `mcp__${OTHER}__slack_send_message`]);
+    transcript([`mcp__${UUID}__slack_send_message`, `mcp__${UUID}__slack_read_channel`, `mcp__${OTHER}__slack_send_message`, `mcp__${OTHER}__slack_read_channel`]);
+    expect(dupes()).toHaveLength(1);
+  });
+
+  it('does not glue unrelated services that share one generic tool name, even transitively', () => {
+    transcript([
+      `mcp__${UUID}__search`,
+      `mcp__${UUID}__createJiraIssue`,
+      `mcp__${UUID}__getJiraIssue`,
+      `mcp__${OTHER}__search`,
+      `mcp__${OTHER}__fetch`,
+      `mcp__${OTHER}__read_doc`,
+      'mcp__66666666-2222-3333-4444-555555555555__fetch',
+      'mcp__66666666-2222-3333-4444-555555555555__list_files',
+      'mcp__66666666-2222-3333-4444-555555555555__share_file',
+    ]);
+    expect(dupes()).toEqual([]);
+  });
+
+  it('still merges on a substantial overlap: two tools and at least half of the smaller set', () => {
+    transcript([`mcp__${UUID}__a`, `mcp__${UUID}__b`, `mcp__${UUID}__c`, `mcp__${OTHER}__a`, `mcp__${OTHER}__b`, `mcp__${OTHER}__d`, `mcp__${OTHER}__e`]);
     expect(dupes()).toHaveLength(1);
   });
 
@@ -157,7 +191,12 @@ describe('plugin whose manifest name differs from its install id', () => {
   it('matches its transcript tools to a connector', () => {
     installPlugins({ 'atlassian-mcp@m': { mcp: { atlassian: { type: 'http', url: 'https://mcp.atlassian.com/v2/mcp' } } } });
     write(path.join(home, 'plugins', 'cache', 'atlassian-mcp-m', '1.0.0', '.claude-plugin', 'plugin.json'), JSON.stringify({ name: 'atlassian' }));
-    transcript(['mcp__plugin_atlassian_atlassian__getJiraIssue', `mcp__${UUID}__getJiraIssue`]);
+    transcript([
+      'mcp__plugin_atlassian_atlassian__getJiraIssue',
+      'mcp__plugin_atlassian_atlassian__createJiraIssue',
+      `mcp__${UUID}__getJiraIssue`,
+      `mcp__${UUID}__createJiraIssue`,
+    ]);
     const [f, ...rest] = dupes();
     expect(rest).toEqual([]);
     expect(f.detail).toContain('atlassian-mcp@m');

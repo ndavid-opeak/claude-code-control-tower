@@ -36,6 +36,25 @@ describe('analyzer routes', () => {
     expect(await latest()).toEqual(second);
   });
 
+  it('keeps the saved Claude review when a new run only changes the window, noting the earlier run', async () => {
+    const file = path.join(stateDir, 'analyzer-report.json');
+    const first = await (await runAnalysis({ window: 30 })).json();
+    fs.writeFileSync(file, JSON.stringify({ ...first, review: { at: 5, advice: '1. Trim CLAUDE.md.' } }));
+
+    const same = await (await runAnalysis({ window: 30 })).json();
+    expect(same.review).toEqual({ at: 5, advice: '1. Trim CLAUDE.md.' });
+
+    const other = await (await runAnalysis({ window: 7 })).json();
+    expect(other.window).toBe(7);
+    expect(other.review.at).toBe(5);
+    expect(other.review.advice).toContain('1. Trim CLAUDE.md.');
+    expect(other.review.advice).toMatch(/earlier.*30/is);
+    expect(await latest()).toEqual(other);
+
+    const back = await (await runAnalysis({ window: 30 })).json();
+    expect(back.review.advice.match(/earlier/gi)).toHaveLength(1);
+  });
+
   it('rejects a window other than 7 or 30', async () => {
     expect((await runAnalysis({ window: 14 })).status).toBe(400);
   });

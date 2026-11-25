@@ -82,6 +82,17 @@ describe('hooks pointing to missing scripts', () => {
     expect(run().findings).toEqual([]);
   });
 
+  it('reads a quoted path with spaces as one script', () => {
+    const dir = path.join(tmp, 'my hooks');
+    fs.mkdirSync(dir);
+    fs.writeFileSync(path.join(dir, 'ok.sh'), '#!/bin/sh\n');
+    const gone = path.join(dir, 'gone.sh');
+    fs.writeFileSync(path.join(home, 'settings.json'), settingsWith([`bash "${path.join(dir, 'ok.sh')}"`, `bash "${gone}" --quiet`, `node '${gone}'`]));
+    const { findings } = run();
+    expect(findings).toHaveLength(2);
+    for (const f of findings) expect(f.detail).toContain(`runs ${gone},`);
+  });
+
   it('lists findings worst first', () => {
     fs.writeFileSync(path.join(home, 'settings.json.bak-1'), '{}');
     fs.writeFileSync(path.join(home, 'settings.json'), settingsWith([path.join(tmp, 'nope.sh')]));
