@@ -28,7 +28,11 @@ export interface Plugin {
 /** Every plugin install recorded in ~/.claude/plugins/installed_plugins.json. */
 export function listPlugins(claudeHome: string): Plugin[] {
   const installed = readJson(path.join(claudeHome, 'plugins', 'installed_plugins.json'))?.plugins ?? {};
-  const userEnabled = readJson(path.join(claudeHome, 'settings.json'))?.enabledPlugins ?? {};
+  // settings.local.json overrides settings.json.
+  const userEnabled = {
+    ...readJson(path.join(claudeHome, 'settings.json'))?.enabledPlugins,
+    ...readJson(path.join(claudeHome, 'settings.local.json'))?.enabledPlugins,
+  };
   const out: Plugin[] = [];
   for (const [id, entries] of Object.entries<any[]>(installed)) {
     const [name, marketplace = ''] = id.split('@');

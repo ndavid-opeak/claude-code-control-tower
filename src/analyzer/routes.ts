@@ -48,6 +48,13 @@ export function analyzerRoutes(app: Hono, { runReview = runClaude }: AnalyzerOpt
     const window = body.window ?? 30;
     if (window !== 7 && window !== 30) return c.json({ error: 'window must be 7 or 30' }, 400);
     const report = analyze({ ...claudePaths(), now: Date.now(), window: window as Window });
+    // A paid review survives a rerun; when only the window changed it is marked as made for the earlier run.
+    const previous = loadReport();
+    if (previous?.review) {
+      const { advice } = previous.review;
+      const note = `> Made for the earlier ${previous.window}-day run.\n\n`;
+      report.review = { ...previous.review, advice: previous.window === report.window || advice.startsWith('> Made for the earlier') ? advice : note + advice };
+    }
     saveReport(report);
     return c.json(report);
   });

@@ -1,15 +1,18 @@
 import path from 'node:path';
+import { claudeAiConnectors, recordedTools } from '../../mcpTools.ts';
 import { listProjects } from '../../projects.ts';
 import { listPlugins, mcpServersOf, pluginMcpServers, readJson } from '../../setup.ts';
 import type { Rule, RuleFinding } from '../types.ts';
 import { MCP_SERVER_LIMIT } from './limits.ts';
 
-/** Too many MCP servers enabled: in the user config plus enabled plugins, and per project with its own. */
+/** Too many MCP servers enabled: in the user config plus enabled plugins and claude.ai connectors, and per project with its own. */
 export const mcpServers: Rule = ({ claudeHome, claudeJsonPath }) => {
   const findings: RuleFinding[] = [];
   const claudeJson = readJson(claudeJsonPath);
   const global = new Set(mcpServersOf(claudeJson?.mcpServers).map((s) => s.name));
   for (const p of listPlugins(claudeHome)) if (p.enabled) for (const s of pluginMcpServers(p)) global.add(s.name);
+  // claude.ai connectors have no local config; they are counted from the tool names transcripts record.
+  for (const id of claudeAiConnectors(recordedTools(claudeHome)).keys()) global.add(`claude.ai connector ${id}`);
 
   if (global.size > MCP_SERVER_LIMIT) {
     findings.push({
@@ -18,7 +21,7 @@ export const mcpServers: Rule = ({ claudeHome, claudeJsonPath }) => {
       title: 'Many MCP servers enabled',
       detail: `${global.size} MCP servers are enabled for every session (limit ${MCP_SERVER_LIMIT}); each adds its tool definitions to every turn.`,
       file: claudeJsonPath,
-      fix: 'Remove servers you rarely use (claude mcp remove <name>) or disable the plugins that ship them.',
+      fix: 'Remove servers you rarely use (claude mcp remove <name>), disable the plugins that ship them, or remove claude.ai connectors in claude.ai settings under Connectors.',
     });
   }
 

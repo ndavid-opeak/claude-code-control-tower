@@ -1,5 +1,5 @@
-import fs from 'node:fs';
 import path from 'node:path';
+import { claudeAiConnectors, recordedTools } from '../../mcpTools.ts';
 import { listPlugins, mcpServersOf, pluginMcpServers, readJson } from '../../setup.ts';
 import type { Rule, RuleFinding } from '../types.ts';
 
@@ -7,10 +7,6 @@ import type { Rule, RuleFinding } from '../types.ts';
 // claude.ai connector. Connectors have no local config, so they are found from the tool names
 // (`mcp__<uuid>__<tool>`) that session transcripts record. Plugin servers appear there as
 // `mcp__plugin_<plugin>_<server>__<tool>` and local servers as `mcp__<name>__<tool>`.
-
-const RECENT_TRANSCRIPTS = 30;
-const TOOL = /mcp__((?:(?!__)[\w.-])+)__([\w.-]+)/g;
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 interface Source {
   kind: 'plugin' | 'mcpServers' | 'connector';
@@ -20,41 +16,6 @@ interface Source {
   name: string;
   target: string;
   tools: Set<string>;
-}
-
-/** Tool names per MCP server name, from the most recently modified transcripts. */
-function recordedTools(claudeHome: string): Map<string, Set<string>> {
-  const files: { file: string; mtime: number }[] = [];
-  const root = path.join(claudeHome, 'projects');
-  try {
-    for (const dir of fs.readdirSync(root)) {
-      try {
-        for (const f of fs.readdirSync(path.join(root, dir))) {
-          if (!f.endsWith('.jsonl')) continue;
-          const file = path.join(root, dir, f);
-          files.push({ file, mtime: fs.statSync(file).mtimeMs });
-        }
-      } catch {}
-    }
-  } catch {
-    return new Map();
-  }
-  files.sort((a, b) => b.mtime - a.mtime);
-  const out = new Map<string, Set<string>>();
-  for (const { file } of files.slice(0, RECENT_TRANSCRIPTS)) {
-    let text: string;
-    try {
-      text = fs.readFileSync(file, 'utf8');
-    } catch {
-      continue;
-    }
-    for (const m of text.matchAll(TOOL)) {
-      const set = out.get(m[1]) ?? new Set<string>();
-      set.add(m[2]);
-      out.set(m[1], set);
-    }
-  }
-  return out;
 }
 
 function sourcesOf(claudeHome: string, claudeJsonPath: string): Source[] {
@@ -90,16 +51,23 @@ function sourcesOf(claudeHome: string, claudeJsonPath: string): Source[] {
     }
   }
 
-  for (const [server, tools] of recorded) {
-    if (UUID.test(server)) sources.push({ kind: 'connector', label: `claude.ai connector ${server}`, name: '', target: '', tools });
+  for (const [server, tools] of claudeAiConnectors(recorded)) {
+    sources.push({ kind: 'connector', label: `claude.ai connector ${server}`, name: '', target: '', tools });
   }
   return sources;
+}
+
+/** Generic tool names (search, fetch, read) are shared by unrelated services, so one shared name proves nothing. */
+function substantialOverlap(a: Set<string>, b: Set<string>): boolean {
+  let shared = 0;
+  for (const t of a) if (b.has(t)) shared++;
+  return shared >= 2 && shared >= Math.min(a.size, b.size) / 2;
 }
 
 const sameService = (a: Source, b: Source) =>
   (a.name !== '' && a.name === b.name && !(a.kind === 'mcpServers' && b.kind === 'mcpServers')) ||
   (a.target !== '' && a.target === b.target) ||
-  [...a.tools].some((t) => b.tools.has(t));
+  substantialOverlap(a.tools, b.tools);
 
 /** The same service connected through two or more of plugins, mcpServers and claude.ai connectors. */
 export const duplicateServices: Rule = ({ claudeHome, claudeJsonPath }) => {

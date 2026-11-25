@@ -6,15 +6,24 @@ import type { Rule, RuleFinding } from '../types.ts';
 /** Commands that run the script named after them, e.g. `node ~/.claude/hooks/x.js`. */
 const INTERPRETERS = new Set(['sh', 'bash', 'zsh', 'node', 'python', 'python3', 'bun', 'deno', 'tsx', 'ruby', 'perl']);
 
+/** Splits a command into words, keeping a quoted stretch ("/my dir/x.sh") together and dropping its quotes. */
+function words(command: string): string[] {
+  const out: string[] = [];
+  for (const m of command.matchAll(/(?:"([^"]*)"|'([^']*)'|\S)+/g)) {
+    out.push(m[0].replace(/"([^"]*)"|'([^']*)'/g, (_, d, q) => d ?? q));
+  }
+  return out;
+}
+
 /** The script a hook command runs, when it names one by absolute or home-relative path. */
 function scriptOf(command: string): string | undefined {
-  const words = command.trim().split(/\s+/).map((w) => w.replace(/^["']|["']$/g, ''));
+  const parts = words(command);
   let i = 0;
-  if (INTERPRETERS.has(path.basename(words[0] ?? ''))) {
+  if (INTERPRETERS.has(path.basename(parts[0] ?? ''))) {
     i = 1;
-    while (words[i]?.startsWith('-')) i++;
+    while (parts[i]?.startsWith('-')) i++;
   }
-  const word = words[i]?.replace(/^(~|\$HOME|\$\{HOME\})(?=\/)/, os.homedir());
+  const word = parts[i]?.replace(/^(~|\$HOME|\$\{HOME\})(?=\/)/, os.homedir());
   return word?.startsWith('/') ? word : undefined;
 }
 
