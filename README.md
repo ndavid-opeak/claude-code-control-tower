@@ -17,7 +17,16 @@ See every Claude Code session at a glance, route models across Anthropic and Gem
 ![Local only](https://img.shields.io/badge/runs-127.0.0.1%20only-success.svg)
 ![No telemetry](https://img.shields.io/badge/telemetry-none-success.svg)
 
-[Set up](#set-up) · [Everyday use](#everyday-use) · [Security](#security) · [Contributing](CONTRIBUTING.md)
+[Set up](#set-up) · [Tour](#a-quick-tour) · [Everyday use](#everyday-use) · [Security](#security) · [Contributing](CONTRIBUTING.md)
+
+<br>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/sessions-dark.png">
+  <img src="docs/assets/screenshots/sessions.png" alt="The Sessions board: Claude Code sessions in Waiting for me, Working and Done columns, with plan usage at the top" width="900">
+</picture>
+
+<sub>Screenshots use made-up data from <code>npm run demo</code>.</sub>
 
 </div>
 
@@ -41,6 +50,15 @@ claude ──► http://127.0.0.1:3456/v1/messages ──► route for opus / so
 ```
 
 The Sessions page works whether or not you route anything: it only reads Claude Code's files. The router only affects sessions you start pointed at it.
+
+## A quick tour
+
+| | |
+|---|---|
+| <img src="docs/assets/screenshots/session-panel.png" alt="A session's panel: context window, model, timings and its subagents"><br>**Session panel.** Context use with a warning before it gets too long, the model, timings, subagents and the full conversation. | <img src="docs/assets/screenshots/routing.png" alt="The Routing page: an ordered list of targets for each Claude model family"><br>**Routing.** An ordered fallback chain for each model family: Gemini models first, Anthropic last. |
+| <img src="docs/assets/screenshots/logs.png" alt="The Logs page: router requests with model, provider, latency and tokens, one expanded to show a fallback"><br>**Logs.** Every request through the router, with each attempt. Here Gemini 4 Argon failed and Gemini 3.1 Pro answered. | <img src="docs/assets/screenshots/analyzer.png" alt="The Analyzer page: a score out of 100 with four categories and a list of what to fix"><br>**Analyzer.** A score for your Claude Code setup and a list of what to fix, worst first. |
+
+Want to click around first? After `npm install && npm run build`, `npm run demo` starts it on made-up sessions at http://127.0.0.1:3460. It reads none of your files and sends nothing anywhere.
 
 ---
 
@@ -292,17 +310,21 @@ npm run dev        # API (reloads on change) on 3456 + dashboard with hot reload
 npm test           # vitest: translation, routing and fallback, config, API, session readers
 npm run typecheck  # server and dashboard
 npm run build      # dashboard into dist/web
+npm run demo       # the real server on made-up data, at http://127.0.0.1:3460 (run `npm run build` first)
 ```
+
+`npm run demo` builds a throwaway home folder of fake sessions, settings and usage in the temp folder (`scripts/demo.ts`) and answers every Anthropic and Gemini call with a canned reply, so it is safe to run anywhere. It is how the screenshots are made.
 
 | Folder | What |
 |---|---|
 | `src/server.ts` | HTTP server: Claude Code traffic, dashboard API, static dashboard |
 | `src/router/` | route resolution, fallback and cooldowns |
 | `src/providers/` | Anthropic pass-through; Gemini translation (`gemini/`) |
-| `src/sessions/` | session readers and their API (from Claude Office) |
+| `src/sessions/` | session readers and their API |
 | `launchd/` | macOS LaunchAgent template that starts the router at login and restarts it |
 | `autostart/` | the same for Linux (systemd user service) and Windows (Task Scheduler script) |
 | `web/` | dashboard (React, Tailwind) |
+| `scripts/demo.ts` | demo mode with made-up data (`npm run demo`) |
 | `test/` | tests |
 
 ---
