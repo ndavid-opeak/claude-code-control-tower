@@ -21,6 +21,7 @@ import { anthropicHealth, forwardToAnthropic } from "./providers/anthropic.js";
 import { estimateTokens, probeGeminiModels, testGemini } from "./providers/gemini/index.js";
 import type { AnthropicRequest } from "./providers/gemini/types.js";
 import { execute, resolveChain } from "./router/executor.js";
+import { analyzerRoutes } from "./analyzer/routes.ts";
 import { restartPoll, sessionRoutes, startSessions } from "./sessions/routes.ts";
 import { applyConfigPatch } from "./sessions/settings.ts";
 
@@ -208,6 +209,7 @@ app.get("/api/logs/:id", (c) => {
 });
 
 sessionRoutes(app);
+analyzerRoutes(app);
 
 // ---- Dashboard (built by `npm run build` into dist/web) ----------------------
 

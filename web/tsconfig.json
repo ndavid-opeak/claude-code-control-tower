@@ -25,6 +25,7 @@
   },
   "include": [
     "src",
-    "../src/sessions/types.ts"
+    "../src/sessions/types.ts",
+    "../src/analyzer/types.ts"
   ]
 }
